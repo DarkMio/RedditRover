@@ -18,7 +18,7 @@ import logging
 import traceback
 
 
-class threading(object):
+class multithread(object):
 
 	def __init__(self):
 		self.running = True
@@ -184,7 +184,7 @@ if __name__ == "__main__":
 	db = sqlite3.connect('massdrop.db', check_same_thread=False, isolation_level=None)
 	cur = db.cursor()
 
-	t = threading()
+	t = multithread()
 	t.go()
 	try:
 		join_threads(t.threads)
