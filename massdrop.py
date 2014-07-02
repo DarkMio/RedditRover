@@ -42,9 +42,9 @@ class multithread(object):
 				while self.running == True:
 					comment = next(comment_stream) # Retrieve the next comment
 					if (	"massdrop.com/buy" in comment.body
-						and not "?mode=guest_open" in comment.body
+						and not "guest_open" in comment.body
 						and not check(comment.id)
-						and not submission.author == 'MassdropBot'
+						and not str(comment.author) == 'MassdropBot'
 						):
 
 
@@ -77,7 +77,6 @@ class multithread(object):
 						if (	"massdrop.com/buy" in data # is massdrop we can use?
 							and not "?mode=guest_open" in data # is not already guest-link?
 							and not check(submission.id) # is it already worked (for quick bot reboots.)
-							and not submission.author == 'MassdropBot' # don't spam yourself, ty
 							):	
 
 
@@ -170,7 +169,7 @@ def check(ID):
 			return True
 
 def add(ID):
-	cur.execute('INSERT INTO reddit (time, id) VALUES ("%s", "%s")' % (self.now, ID))
+	cur.execute('INSERT INTO reddit (time, id) VALUES ("%s", "%s")' % (int(time()), ID))
 
 
 
