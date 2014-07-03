@@ -10,13 +10,13 @@ I haven't written a proper debug-mode yet, so you might want to replace the `exc
 ## Version & Changelog
 Current MassdropBot is running as v0.3, fixing some weird behaviour with non-escaped chars in links. Also he shouldn't spam himself anymore.
 ```
+v0.4: Should now load inifite amounts of links, represent them with the website title and respond accordingly.
 v0.3: Fixing behaviour with non-escaped chars in links and stopping the self-spam.
 v0.2: Methods to query with referer-link and stuff like that
 v0.1: Initial Commit
 ```
 
 ## Planned features
-- Processing more than one link in one comment / selfpost.
 - Debugger-Features and startup commands.
 
 ## Help, questions, contribution
