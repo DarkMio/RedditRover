@@ -101,7 +101,7 @@ class multithread(object):
 							):	
 
 
-							if not "reddit" in submission.url:
+							if not "reddit" in submission.url and not "guest_open" in submission.url:
 
 								query = ('?' in submission.url and "&") or "?"
 								guest_link = submission.url+query+"mode=guest_open"
