@@ -44,6 +44,7 @@ class multithread(object):
 					comment = next(comment_stream) # Retrieve the next comment
 
 					if (	"massdrop.com/buy" in comment.body
+						and not "mode=guest_open" in comment.body
 						and not check(comment.id)
 						and not str(comment.author) == 'MassdropBot'
 						): # so, we found at least one massdrop-buy link, let's do this!
@@ -61,25 +62,27 @@ class multithread(object):
 								# load a title, so we can link what is what.
 								try:
 									title = BeautifulSoup(urllib2.urlopen(guest_link)).title.string
-									title = title.strip(' - Massdrop')+": "
+									title = title.replace(' - Massdrop', '')+": "
 								except:
 									title = ""
 								linklist.append("\n\n"+title+guest_link)
 
 
-						# joins all links to a string, so we can use it easily in our comment without overcomplicating things.
-						string_links = ''.join(map(str, linklist))
+						if len(linklist) > 0:
+							# joins all links to a string, so we can use it easily in our comment without overcomplicating things.
+							string_links = ''.join(map(str, linklist))
 
-						# make a dynamic response, based on the amount of links posted.
-						reply = (len(linklist) > 1 and self.comment_multiple % string_links) or self.comments % string_links
+							# make a dynamic response, based on the amount of links posted.
+							reply = (len(linklist) > 1 and self.comment_multiple % string_links) or self.comment % string_links
 
-						# and reply to it - needs a retry feature soon
-						log.info("Found a comment with ID %s, replying and storing." % comment.id)
-						comment.reply(reply)
-						add(comment.id)
+							# and reply to it - needs a retry feature soon
+							log.info("Found a comment with ID %s, replying and storing." % comment.id)
+							len(linklist) > 0 and comment.reply(reply)
+							add(comment.id)
 
 			except:
 				log.info("Comment stream broke. Retrying in 60.")
+				log.error(traceback.print_exc())
 				sleep(60)
 				pass
 
@@ -98,10 +101,11 @@ class multithread(object):
 					
 						if (	"massdrop.com/buy" in data # is massdrop we can use?
 							and not check(submission.id) # is it already worked (for quick bot reboots.)
+							and not "mode=guest_open" in data
 							):	
 
 
-							if not "reddit" in submission.url and not "guest_open" in submission.url:
+							if not "reddit" in submission.url:
 
 								query = ('?' in submission.url and "&") or "?"
 								guest_link = submission.url+query+"mode=guest_open"
@@ -139,19 +143,20 @@ class multithread(object):
 											title = ""
 										linklist.append("\n\n"+title+guest_link)
 
+								if len(linklist) > 0:
+									# joins all links to a string, so we can use it easily in our comment without overcomplicating things.
+									string_links = ''.join(map(str, linklist))
 
-								# joins all links to a string, so we can use it easily in our comment without overcomplicating things.
-								string_links = ''.join(map(str, linklist))
-
-								# make a dynamic response, based on the amount of links posted.
-								reply = (len(linklist) > 1 and self.comment_multiple % string_links) or self.comment % string_links
-								
-								log.info("Found a self.post with ID %s, adding comment and storing." % submission.id)
-								submission.add_comment(reply)
-								add(submission.id)
+									# make a dynamic response, based on the amount of links posted.
+									reply = (len(linklist) > 1 and self.comment_multiple % string_links) or self.comment % string_links
+									
+									log.info("Found a self.post with ID %s, adding comment and storing." % submission.id)
+									submission.add_comment(reply)
+									add(submission.id)
 
 			except:
 				log.info("Submission stream broke. Retrying in 60.")
+				log.error(traceback.print_exc())
 				sleep(60)
 				pass
 			
