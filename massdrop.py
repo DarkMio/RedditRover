@@ -16,6 +16,10 @@ import re
 import logging
 import traceback
 import urllib2
+import argparse
+
+from linkfix import linkfix
+
 from BeautifulSoup import BeautifulSoup
 from time import time, sleep
 
@@ -25,13 +29,28 @@ class multithread(object):
 		self.running = True
 		self.threads = []
 
-		self.r = praw.Reddit(user_agent='MASSDROP guest link poster')
-		self.r.login()
+		self.r = praw.Reddit(user_agent='Data-Poller for several bot-logins by /u/DarkMio')
+		#self.r.login()
+
+		pwd = "HereCouldBeYourPassword"
+
+		self.r_ma = praw.Reddit(user_agent='Massdrop Guest Link Generator by /u/DarkMio')
+		self.r_ma.login('MassdropBot', pwd)
+		self.r_ji = praw.Reddit(user_agent='Giant GFYCAT Link Fixer by /u/DarkMio')
+		self.r_ji.login('JiffierBot', pwd)
+		self.r_ss = praw.Reddit(user_agent='Small Sub Mention Bot by /u/DarkMio')
+		self.r_ss.login('SmallSubBot', pwd)
+
+
+
 		self.subreddit = 'all'
 		self.now = int(time())
 		# best handling without formatting is to not format it.
-		self.comment = "Hi, I am /u/MassdropBot.\n\nI've detected that you posted a great Massdrop offer but unfortunately unregistered people cannot see it. I am here to fix that:\n\n%s\n\n---\n\n^This ^is ^a ^bot ^and ^won't ^answer ^to ^mails. ^Mail ^the ^[[Botowner](http://www.reddit.com/message/compose/?to=DarkMio&amp;subject=BotReport)] ^instead. ^v0.4 ^| ^[Changelog](http://redd.it/29f2ah)"
-		self.comment_multiple = "Hi, I am /u/MassdropBot.\n\nI've detected that you posted some great Massdrop offers but unfortunately unregistered people cannot see it. I am here to fix that:\n\n%s\n\n---\n\n^This ^is ^a ^bot ^and ^won't ^answer ^to ^mails. ^Mail ^the ^[[Botowner](http://www.reddit.com/message/compose/?to=DarkMio&amp;subject=BotReport)] ^instead. ^v0.4 ^| ^[Changelog](http://redd.it/29f2ah)"
+		self.comment = "Hi, I am /u/MassdropBot.\n\nI've detected that you posted a great Massdrop offer but unfortunately unregistered people cannot see it. I am here to fix that:\n\n%s"
+		self.comment_multiple = "Hi, I am /u/MassdropBot.\n\nI've detected that you posted some great Massdrop offers but unfortunately unregistered people cannot see it. I am here to fix that:\n\n%s"
+		self.banwords = ['x-post', 'xpost', 'crosspost', 'cross post', 'x/post', 'x\\post', 'via', 'from', 'hhh']
+		self.banauthor = ['removal_rover',]
+
 
 	def comment_stream(self):
 		"""Loads ALL comments from all threads. We watch you fappin'."""
@@ -48,43 +67,39 @@ class multithread(object):
 						and not check(comment.id)
 						and not str(comment.author) == 'MassdropBot'
 						): # so, we found at least one massdrop-buy link, let's do this!
-						linklist = []
-
-						# seach for link.
-						link = re.findall("(?P<url>https?:\/\/(?:www\.)?massdrop\.com\/buy\/[^\s)]*)", comment.body)
-
-						# returns a list with all Massdrop link in one comment.
-						for item in link:
-							item = str(item)
-							if not "mode=guest_open" in item:
-								query = ('?' in item and '&') or '?'
-								guest_link = item+query+"mode=guest_open"
-								# load a title, so we can link what is what.
+							
+							reply = l.massdrop(str(comment.body))
+							if reply:
 								try:
-									title = BeautifulSoup(urllib2.urlopen(guest_link)).title.string
-									title = title.replace(' - Massdrop', '')+": "
+									# and reply to it - needs a retry feature soon
+									log.info("Found a MASSDROP comment with ID %s, replying and storing." % comment.id)
+									self.r_ma._add_comment(comment.fullname, reply)
+									# depricated: comment.reply(reply)
+									add(comment.id)
 								except:
-									title = ""
-								linklist.append("\n\n"+title+guest_link)
+									log.debug(traceback.print_exc())#pass
 
 
-						if len(linklist) > 0:
-							# joins all links to a string, so we can use it easily in our comment without overcomplicating things.
-							string_links = ''.join(map(str, linklist))
-
-							# make a dynamic response, based on the amount of links posted.
-							reply = (len(linklist) > 1 and self.comment_multiple % string_links) or self.comment % string_links
-
-							# and reply to it - needs a retry feature soon
-							log.info("Found a comment with ID %s, replying and storing." % comment.id)
-							len(linklist) > 0 and comment.reply(reply)
-							add(comment.id)
+					if (	"giant.gfycat.com" in comment.body
+						and not check(comment.id)
+						and not str(comment.author) == 'JiffierBot'
+						):
+						reply = l.gfycat(comment.body)
+						if reply:
+							try:
+								log.info("Found a giant GFYCAT comment with ID %s, replying and storing." % comment.id)
+								self.r_ji._add_comment(comment.fullname, reply)
+								# depricated: comment.reply(reply)
+								add(comment.id)
+							except:
+								log.debug(traceback.print_exc())#pass
 
 			except:
 				log.info("Comment stream broke. Retrying in 60.")
-				log.error(traceback.print_exc())
+				log.debug(traceback.print_exc())
 				sleep(60)
 				pass
+
 
 
 	def submission_stream(self):
@@ -104,59 +119,80 @@ class multithread(object):
 							and not "mode=guest_open" in data
 							):	
 
-
 							if not "reddit" in submission.url:
 
-								query = ('?' in submission.url and "&") or "?"
-								guest_link = submission.url+query+"mode=guest_open"
-								try:
-									# load the website title
-									title = BeautifulSoup(urllib2.urlopen(guest_link)).title.string
-									title = title.strip(' - Massdrop')+": "
-								except:
-									title = ""
-								string_link = "\n\n"+title+guest_link
-
-								reply = self.comment % string_link
-
-								# it will be only one link, since link.posts can only hold one.
-								log.info("Found a link.post with ID %s, adding comment and storing." % submission.id)
-								submission.add_comment(reply)
-								add(submission.id)
+								reply = l.massdrop(str(submission.url))
+								if reply:
+									try:
+										# it will be only one link, since link.posts can only hold one.
+										log.info("Found a MASSDROP link.post with ID %s, adding comment and storing." % submission.id)
+										self.r_ma._add_comment(submission.fullname, reply)
+										#submission.add_comment(reply)
+										add(submission.id)
+									except:
+										log.debug(traceback.print_exc())#pass
 
 
 							elif submission.selftext:
-								linklist = []
-								# seach for link & returns a list with all links
-								link = re.findall("(?P<url>https?:\/\/(?:www\.)?massdrop\.com\/buy\/[^\s)]*)", submission.selftext)
 
-								for item in link:
-									item = str(item)
-									if not "mode=guest_open" in item:
-										query = ('?' in item and '&') or '?'
-										guest_link = item+query+"mode=guest_open"
-										# load a title, so we can link what is what.
-										try:
-											title = BeautifulSoup(urllib2.urlopen(guest_link)).title.string
-											title = title.strip(' - Massdrop')+": "
-										except:
-											title = ""
-										linklist.append("\n\n"+title+guest_link)
+								reply = l.massdrop(str(submission.selftext))
+								if reply:
+									try:
+										log.info("Found a MASSDROP self.post with ID %s, adding comment and storing." % submission.id)
+										self.r_ma._add_comment(submission.fullname, reply)
+										#submission.add_comment(reply)
+										add(submission.id)
+									except:
+										log.debug(traceback.print_exc())#pass
 
-								if len(linklist) > 0:
-									# joins all links to a string, so we can use it easily in our comment without overcomplicating things.
-									string_links = ''.join(map(str, linklist))
 
-									# make a dynamic response, based on the amount of links posted.
-									reply = (len(linklist) > 1 and self.comment_multiple % string_links) or self.comment % string_links
-									
-									log.info("Found a self.post with ID %s, adding comment and storing." % submission.id)
-									submission.add_comment(reply)
-									add(submission.id)
+						if (	"giant.gfycat.com" in data
+							and not check(submission.id)
+							):
+
+							if not "reddit" in submission.url:
+
+								reply = l.gfycat(str(submission.url))
+								if reply:
+									try:
+										log.info("Found a giant GFYCAT link.post with ID %s, adding comment and storing." % submission.id)
+										self.r_ji._add_comment(submission.fullname, reply)
+										#submission.add_comment(reply)
+										add(submission.id)
+									except:
+										log.debug(traceback.print_exc())#pass
+							elif submission.selftext:
+								reply = l.massdrop(str(submission.selftext))
+								if reply:
+									try:
+										log.info("Found a giant GFYCAT self.post with ID %s, adding comment an storing" % submission.id)
+										self.r_ji._add_comment(submission.fullname, reply)
+										#submission.add_comment(reply)
+										add(submission.id)
+									except:
+										log.dself.ebug(traceback.print_exc())#pass
+
+
+					if (	'r/' in submission.title
+						and not any(bans in submission.title.encode('utf-8').lower() for bans in self.banwords)
+						and not ('bot' in str(submission.author).lower() or any(bans in str(submission.author).lower() for bans in self.banauthor))
+						and not check(submission.id)
+						):
+
+						reply = l.subreddit_name(str(submission.title.encode('utf-8')), submission.subreddit, submission.url)
+						if reply:
+							try:
+								log.info("Found a SUBREDDIT title with ID %s, replying and storing." % submission.id)
+								self.r_ss._add_comment(submission.fullname, reply)
+								#submission.add_comment(reply)
+								add(submission.id)
+							except:
+								log.debug(traceback.print_exc())#pass
+
 
 			except:
 				log.info("Submission stream broke. Retrying in 60.")
-				log.error(traceback.print_exc())
+				log.debug(traceback.print_exc())
 				sleep(60)
 				pass
 			
@@ -173,13 +209,13 @@ class multithread(object):
 					i += 0
 				i > 0 and log.info("Cleaned %s entries from the database." % i)
 
-			sleep(6000)
+			sleep(3600)
 
 
 	def close(self):
 		db.close()
 		log.error("CRITICAL ERROR:")
-		log.error(traceback.print_exc())
+		log.debug(traceback.print_exc())
 		log.info("Established connection to database was closed.")
 		raise SystemExit
 
@@ -208,6 +244,10 @@ class multithread(object):
 		self.threads.append(t2)
 		self.threads.append(t3)
 
+class NoParsingFilter(logging.Filter):
+    def filter(self, record):
+        return not record.getMessage().startswith('Resetting')
+
 
 def join_threads(threads):
 	"""
@@ -232,16 +272,22 @@ def add(ID):
 
 
 if __name__ == "__main__":
+	parser = argparse.ArgumentParser(description='MassdropBot parses Links which are more comfy to click in the comment-section.')
+	parser.add_argument('--verbose', action='store_true', help='Print mainly tracebacks.')
+	args = parser.parse_args()
 
 	# SET UP LOGGER
-	logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%X', level=logging.INFO)
-	log = logging.getLogger('dd')
+	logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%X', level=logging.DEBUG if args.verbose else logging.INFO)
+	log = logging.getLogger(__name__)
+	log.addFilter(NoParsingFilter())
 
 	# SET UP DATABASE
 	db = sqlite3.connect('massdrop.db', check_same_thread=False, isolation_level=None)
 	cur = db.cursor()
 
 	t = multithread()
+	l = linkfix()
+
 	t.go()
 	try:
 		join_threads(t.threads)
