@@ -25,6 +25,8 @@ class SingleLevelFilter(logging.Filter):
 
 
 def setup_logging(log_level="INFO", console_log_level=None):
+    """Thanks to Renol: https://github.com/RenolY2/Renol-IRC-rv2
+       This logging handler is quite powerful and nicely formatted."""
     null_handler = logging.NullHandler()
     logging.basicConfig(level=log_level, handlers=[null_handler])
 
