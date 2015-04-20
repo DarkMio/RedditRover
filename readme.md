@@ -22,7 +22,7 @@ v0.1: Initial Commit
 
 ## Planned features & work in progress
 - Debugger-Features and startup commands.
-- Ban Lists
+- Ban Lists (for subreddits and users!)
 - Multi Login (configparser already reads logins somehow, maybe needs better grouping.)
 - Maybe a nitpicky answer module
 
