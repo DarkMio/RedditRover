@@ -11,7 +11,7 @@ Bot features are writting in Abstract Base Classes. Inherit them properly and th
 This bot is now again under development. Way less complex code, more segmentation and more single responsibility principle.
 
 ```
-v0.5: Recode of the bot.
+v0.6: (Currently being worked on.) Recode of the bot.
 --------------------------------------------------------------------------------------------------------------
 v0.5: Added more bots - and then it kept fucking up.
 v0.4: Should now load inifite amounts of links, represent them with the website title and respond accordingly.

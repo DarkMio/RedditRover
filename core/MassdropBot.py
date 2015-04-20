@@ -1,7 +1,8 @@
 from configparser import ConfigParser
 from os import path
 import json
-import LogProvider
+
+from core import LogProvider
 
 
 class MassdropBot(object):
