@@ -1,5 +1,7 @@
 from configparser import ConfigParser
 from os import path
+import core.filtering as filtering
+import pkgutil
 import json
 
 from core import LogProvider
@@ -10,14 +12,25 @@ class MassdropBot(object):
     config = None           # Holds later a full set of configs from ConfigParser.
     users = None            # Holds usernames
     passwords = None        # Holds passwords within
+    responders = None       # Keeps track of all responder objects
 
     def __init__(self):
         self.logger = LogProvider.setup_logging(log_level="DEBUG")
         self.read_config()
-        self.logger.error("I am raising an error.")
+        self.load_responders()
 
     def load_responders(self):
-        return
+        # cleaning of the list
+        self.responders = list()
+
+        package = filtering
+        prefix = package.__name__ + "."
+
+        for importer, modname, ispkg in pkgutil.iter_modules(package.__path__, prefix):
+            self.logger.info("Found submodule {0} (is a package: {1})".format(modname, ispkg))
+            module = __import__(modname, fromlist="dummy")
+            self.responders.append(module)
+        self.logger.info("Imported a total of {} module(s).".format(len(self.responders)))
 
     def read_config(self):
         self.config = ConfigParser()
