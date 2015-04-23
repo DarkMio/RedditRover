@@ -1,10 +1,11 @@
 from core.BaseClass import Base
 
 
-class Concrete(Base):
+class FilterExample(Base):
 
     def __init__(self):
-        pass
+        super().__init__()
+        self.logger.info("__init__ from FilterExample.")
 
     def information_of_interest(self, string):
         pass
@@ -15,5 +16,7 @@ class Concrete(Base):
     def update_procedure(self, thing_id):
         pass
 
-c = Concrete()
-c.integrity_check()
+
+def init():
+    """Init Call from module importer to return only the object itself, rather than the module."""
+    return FilterExample()

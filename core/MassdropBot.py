@@ -22,22 +22,20 @@ class MassdropBot(object):
     def load_responders(self):
         # cleaning of the list
         self.responders = list()
-
+        # preparing the right sub path.
         package = filtering
         prefix = package.__name__ + "."
 
         for importer, modname, ispkg in pkgutil.iter_modules(package.__path__, prefix):
-            self.logger.info("Found submodule {0} (is a package: {1})".format(modname, ispkg))
+            self.logger.info("Found sub-module {0} (is a package: {1})".format(modname, ispkg))
             module = __import__(modname, fromlist="dummy")
+            module = module.init()
             self.responders.append(module)
-        self.logger.info("Imported a total of {} module(s).".format(len(self.responders)))
+        self.logger.info("Imported a total of {} object(s).".format(len(self.responders)))
 
     def read_config(self):
         self.config = ConfigParser()
         self.config.read(path.dirname(__file__) + "/config/config.ini")
-        self.users = json.loads(self.config.get('REDDIT', 'usernames'))
-        self.passwords = json.loads(self.config.get('REDDIT', 'passwords'))
-        assert len(self.users) == len(self.passwords), "Mismatch in username and password length."
         self.logger.info("Configuration read and set up properly.")
 
 

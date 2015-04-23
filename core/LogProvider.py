@@ -57,6 +57,10 @@ def setup_logging(log_level="INFO", console_log_level=None):
     bot_logger.addHandler(console_handler)
     bot_logger.addHandler(standard_handler)
 
+    plugin_logger = logging.getLogger("plugin")
+    plugin_logger.addHandler(console_handler)
+    plugin_logger.addHandler(standard_handler)
+
     bot_logger.info("MassdropBot Logger initialized.")
 
     offset, tzname = local_time_offset()
