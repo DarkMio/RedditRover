@@ -1,10 +1,14 @@
 from core.BaseClass import Base
 
 
-class FilterExample(Base):
+class FilterExampleFull(Base):
 
     def __init__(self):
         super().__init__()
+        self.DESCRIPTION = "Sampletext"
+        self.PASSWORD = "testpwd"
+        self.USERNAME = "testuser"
+        self.REGEX = r'string'
 
     def information_of_interest(self, string):
         pass
@@ -18,4 +22,4 @@ class FilterExample(Base):
 
 def init():
     """Init Call from module importer to return only the object itself, rather than the module."""
-    return FilterExample()
+    return FilterExampleFull()

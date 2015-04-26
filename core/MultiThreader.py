@@ -7,8 +7,11 @@ class MultiThreader(object):
     threads = list()         # Holds all threads together.
 
     def go(self, *args):
-        for i, line in enumerate(args):
-            thread = threading.Thread(target=line, args=(i+1,))
+        for line in args:
+            if len(line) == 1:
+                thread = threading.Thread(target=line[0])
+            else:
+                thread = threading.Thread(target=line[0], args=[1])
             thread.daemon = True
             thread.start()
             self.threads.append(thread)
