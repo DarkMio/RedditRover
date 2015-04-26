@@ -50,9 +50,13 @@ class MassdropBot(object):
         self.logger.info("Imported a total of {} object(s).".format(len(self.responders)))
 
     def print_submissions(self):
-        print(self.submissions)
+        from pprint import pprint
         for sub in self.submissions:
-            self.logger.critical(sub)
+            pprint(vars(sub))
+            break
+        for cmt in self.comments:
+            pprint(vars(cmt))
+            break
 
     def submission_stream(self):
         self.submissions = praw.helpers.submission_stream(self.reddit, 'all', limit=None, verbosity=0)
