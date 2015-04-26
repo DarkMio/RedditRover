@@ -12,10 +12,10 @@ class Massdrop(Base):
         self.REGEX = r"^(https?://)?(www.)?(massdrop.com/buy/)(?P<product>.*)(\?.*)"
         self.factory_reddit()
 
-    def information_of_interest(self, string):
+    def execute_comment(self, comment):
         pass
 
-    def logical_features(self):
+    def execute_submission(self, submission):
         pass
 
     def update_procedure(self, thing_id):

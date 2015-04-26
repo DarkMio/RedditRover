@@ -34,11 +34,11 @@ class Base(metaclass=ABCMeta):
         self.config.read(path.dirname(__file__) + "/config/bot_config.ini")
 
     @abstractmethod
-    def information_of_interest(self, string):
+    def execute_submission(self, submission):
         pass
 
     @abstractmethod
-    def logical_features(self):
+    def execute_comment(self, comment):
         pass
 
     @abstractmethod

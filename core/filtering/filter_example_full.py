@@ -10,10 +10,10 @@ class FilterExampleFull(Base):
         self.USERNAME = "testuser"
         self.REGEX = r'string'
 
-    def information_of_interest(self, string):
+    def execute_comment(self, comment):
         pass
 
-    def logical_features(self):
+    def execute_submission(self, submission):
         pass
 
     def update_procedure(self, thing_id):
