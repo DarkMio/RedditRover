@@ -25,6 +25,7 @@ v0.1: Initial Commit
 - Ban Lists (for subreddits and users!)
 - Multi Login (configparser already reads logins somehow, maybe needs better grouping.)
 - Maybe a nitpicky answer module
+- SmallSubBot generates Set of subreddits (eliminates the possibility of a subreddit being called twice)
 
 ##### Planned Massdrop Features
 - After reading Massdrop links wait some time before responding (LIFO queue)
