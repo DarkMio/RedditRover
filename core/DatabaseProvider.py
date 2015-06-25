@@ -25,7 +25,7 @@ class DatabaseProvider():
     def database_init(self):
         if not self.database_check_if_exists('storage'):
             self.cur.execute(
-                'CREATE TABLE IF NOT EXISTS storage (thing_id STR(10), bot_module STR(50), DateTime datetime)'
+                'CREATE TABLE IF NOT EXISTS storage (thing_id STR(10), bot_module STR(50), timestamp datetime)'
             )
             self.logger.info("Table 'storage' had to be generated.")
 
@@ -39,7 +39,7 @@ class DatabaseProvider():
         if not self.database_check_if_exists('modules'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS modules '
-                '(id INT(5) NOT NULL PRIMARY KEY, module_name STR(50))'
+                '(module_name STR(50))'
             )
 
     def database_check_if_exists(self, table_name):
@@ -54,6 +54,18 @@ class DatabaseProvider():
                          'VALUES ((?), (?), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP+(?), CURRENT_TIMESTAMP, (?))',
                          (thing_id, module, lifetime, interval,))
 
+    def get_all_storage(self):
+        self.cur.execute('SELECT * FROM storage;')
+        return self.cur.fetchall()
+
+    def delete_from_storage(self, min_timestamp):
+        self.cur.execute("DELETE FROM storage WHERE timestamp <= datetime((?), 'unixepoch');", (min_timestamp,))
+
+    def select_from_storage(self, min_timestamp):
+        self.cur.execute("SELECT * FROM storage WHERE timestamp <= datetime((?), 'unixepoch');", (min_timestamp,))
+        return self.cur.fetchall()
+
+#   @TODO: Storage works, two tables to go.
     def update_in_update(self, thing_id):
         self.cur.execute('UPDATE update WHERE thing_id=(?) VALUES last_updated=CURRENT_TIMESTAMP', (thing_id,))
 
@@ -86,9 +98,8 @@ if __name__ == "__main__":
     db = DatabaseProvider()
     thing_id = "t2_c384fd"
     module = "MassdropBot"
-    db.insert_into_storage(thing_id, module)
-    db.insert_into_update(thing_id, module, 1000, 20)
-
-    while True:
-        print(db.get_latest_to_update(module))
-        # from time
+#   Commands that work:
+#   db.insert_into_storage(thing_id, module)
+#   print(db.get_all_storage())
+    from time import time
+    print(db.select_from_storage(int(time())))
