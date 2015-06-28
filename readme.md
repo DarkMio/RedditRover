@@ -3,7 +3,7 @@ In case you're interested in writing reddit bots and like to see how different b
 
 ## Progress
 
-![Feature Complete](http://progressed.io/bar/40?title=Feature%20Complete)
+![Feature Complete](http://progressed.io/bar/65?title=Feature%20Complete)
 ![Database Provider](http://progressed.io/bar/90?title=Database%20Provider)
 ![Framework](http://progressed.io/bar/70?title=Framework)
 ![Threading](http://progressed.io/bar/100?title=Threading)
