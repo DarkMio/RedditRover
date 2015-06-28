@@ -28,17 +28,20 @@ class MultiThreader(object):
     @staticmethod
     def repeater(thread):
         """Test method for tinkering with threading."""
-        i = 0
+        global G
         while True:
-            print("Thread {}: Seconds {}".format(thread, i))
-            i += 5
+            i = G
+            print("Thread {}: i = {}".format(thread, i))
+            G += 1
             time.sleep(5)
 
 
 if __name__ == "__main__":
+    global G
+    G = 1
     threader = MultiThreader()
-    threader.go(threader.repeater, threader.repeater, threader.repeater)
+    threader.go([threader.repeater, 1], [threader.repeater, 2], [threader.repeater, 3])
     try:
         threader.join_threads()
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as e:
         print("Exiting.")

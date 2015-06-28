@@ -1,6 +1,14 @@
 # Massdrop Reddit Bot
 In case you're interested in writing reddit bots and like to see how different bots operate, you can view and preview this bot here. Please respect my work and don't run it extensively on your own. This would spam under comments, since my bot is already hosted on a dedicated server. You can run it (please change the `self.comment` in the threading-class) and review it without problems, but when two bots run the same process, we just create clutter on reddit, which will get me and you banned. Thanks.
 
+## Progress
+
+![Feature Complete](http://progressed.io/bar/40?title=Feature%20Complete)
+![Local Database Provider](http://progressed.io/bar/20?title=Local%20Database%20Provider)
+![Framework](http://progressed.io/bar/70?title=Framework)
+![Threading](http://progressed.io/bar/100?title=Threading)
+![Modules](http://progressed.io/bar/0?title=Modules)
+
 ## Installation & Usage
 No clue what the bot will use in plugins, but currently he is running only with builtins (and later with PRAW.)
 
