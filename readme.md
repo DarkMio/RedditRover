@@ -4,7 +4,7 @@ In case you're interested in writing reddit bots and like to see how different b
 ## Progress
 
 ![Feature Complete](http://progressed.io/bar/40?title=Feature%20Complete)
-![Local Database Provider](http://progressed.io/bar/20?title=Local%20Database%20Provider)
+![Database Provider](http://progressed.io/bar/90?title=Database%20Provider)
 ![Framework](http://progressed.io/bar/70?title=Framework)
 ![Threading](http://progressed.io/bar/100?title=Threading)
 ![Modules](http://progressed.io/bar/0?title=Modules)
