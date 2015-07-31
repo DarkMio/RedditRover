@@ -10,18 +10,19 @@ from core.MultiThreader import MultiThreader
 from core.DatabaseProvider import DatabaseProvider
 from misc import warning_filter
 
-class MassdropBot(object):
-    logger = None           # Logging Session with full console setup.
-    config = None           # Holds later a full set of configs from ConfigParser.
-    users = None            # Holds usernames
-    passwords = None        # Holds passwords within
-    responders = None       # Keeps track of all responder objects
-    multi_thread = None     # Reference to MultiThreader, which ... does the threading.
-    database = None         # Reference to the DatabaseProvider
 
-    reddit = None           # Anonymous reddit session
-    submissions = None      # Kinda list of submissions which the threads work through
-    comments = None         # Same applies here, the comments are like a list, another thread runs through them
+class MassdropBot:
+    logger = None  # Logging Session with full console setup.
+    config = None  # Holds later a full set of configs from ConfigParser.
+    users = None  # Holds usernames
+    passwords = None  # Holds passwords within
+    responders = None  # Keeps track of all responder objects
+    multi_thread = None  # Reference to MultiThreader, which ... does the threading.
+    database = None  # Reference to the DatabaseProvider
+
+    reddit = None  # Anonymous reddit session
+    submissions = None  # Kinda list of submissions which the threads work through
+    comments = None  # Same applies here, the comments are like a list, another thread runs through them
 
     def __init__(self):
         warning_filter.ignore()
@@ -31,6 +32,10 @@ class MassdropBot(object):
         self.multi_thread = MultiThreader()
         self.database = DatabaseProvider()
         self.reddit = praw.Reddit(user_agent='Data-Poller for several logins by /u/DarkMio')
+        global database
+        database = self.database
+        global config
+        config = self.config
         # Disabled for now:
         # self.submission_stream()
         # self.comment_stream()
@@ -39,7 +44,7 @@ class MassdropBot(object):
 
     def load_responders(self):
         """Main method to load sub-modules, which are designed as a framework for multiple bots.
-           This allows to abstract bots even more than PRAW even does and it's nicely handled in
+           This allows to abstract bots even more than what PRAW does and it's nicely handled in
            a threaded environment to do multiple tasks pretty efficient without writing a full new bot."""
         # cleaning of the list
         self.responders = list()
@@ -70,6 +75,7 @@ class MassdropBot(object):
     def print_submissions(self):
         """Prints one recent submission and one recent comment object."""
         from pprint import pprint
+
         for sub in self.submissions:
             pprint(vars(sub))
             break
@@ -79,12 +85,12 @@ class MassdropBot(object):
 
     def submission_thread(self):
         for submission in self.submissions:
-
             for responder in self.responders:
-                # a responder should return with true of false, so we can manage the database for it here.
-                # reminder: writing on multiple threads is bad, reading is always fine.
-                if responder.execute_submission(submission):
-                    # database feature here
+                if (not self.database.get_thing_from_storage(submission.id, responder.BOT_NAME) and
+                        responder.execute_submission(submission)):
+                    # a responder should return with true of false, so we can manage the database for it here.
+                    # reminder: writing on multiple threads is bad, reading is always fine.
+                    self.database.insert_into_storage(submission.id, responder.BOT_NAME)
                     pass
 
     def comment_thread(self):

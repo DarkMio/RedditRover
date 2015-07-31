@@ -1,0 +1,9 @@
+[Massdrop]
+intro="I may malfunction, since I just got recoded."
+intro_drop="Unfortunately not registered people cannot see the {products} you linked, but don't worry, I'll fix that:"
+product_binding="[{Name} ({pricing}{end_date}){region_lock}](fix_url)"
+update_binding="This comment updates itself every {interval} hours, for more {end_date} hours."
+outro_drop="\n\n---\nI am a bot and cannot answer to mails - mail the (Botowner)[http://reddit.com/u/{username}/mail] instead."
+# "[Massdrop Offer (for $25,99, $12,99 shipping, ends 12.07.2016) *US ONLY*](fix_url)"
+# "Massdrop Offer (not on sale yet): fix_url"
+# "This comment updates itself every 2 hours for 72 more hours."

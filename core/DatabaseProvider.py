@@ -3,7 +3,7 @@ import sqlite3
 from pkg_resources import resource_filename
 
 
-class DatabaseProvider():
+class DatabaseProvider:
     logger = None   # Logger
     db = None       # Reference to DB session
     cur = None      # Reference to DB cursor
@@ -59,6 +59,15 @@ class DatabaseProvider():
                             INNER JOIN modules
                             ON storage.bot_module = modules._ROWID_""")
         return self.cur.fetchall()
+
+    def get_thing_from_storage(self, thing_id, module):
+        self.__error_if_not_exists(module)
+        self.cur.execute("""SELECT thing_id, module_name, timestamp FROM storage
+                            WHERE thing_id = (?)
+                            AND module_name = (SELECT _ROWID_ FROM modules WHERE module_name=(?))
+                            MAX 1""",
+                         (thing_id, module,))
+        return self.cur.fetchone()
 
     def delete_from_storage(self, min_timestamp):
         """Deletes _all_ items which are older than a certain timestamp"""
