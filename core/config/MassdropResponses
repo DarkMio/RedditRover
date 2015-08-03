@@ -1,4 +1,4 @@
-[Massdrop]
+[MASSDROP]
 intro="I may malfunction, since I just got recoded."
 intro_drop="Unfortunately not registered people cannot see the {products} you linked, but don't worry, I'll fix that:"
 product_binding="[{Name} ({pricing}{end_date}){region_lock}](fix_url)"

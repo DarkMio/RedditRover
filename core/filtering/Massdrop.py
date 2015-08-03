@@ -22,7 +22,7 @@ class Massdrop(Base):
 
     def load_responses(self):
         self.response_header = ConfigParser()
-        self.response_header.read(path.dirname(__file__) + "/config/MassdropReaponses.")
+        self.response_header.read(path.dirname(__file__) + "/config/MassdropResponses")
 
 
     def execute_comment(self, comment):
@@ -61,7 +61,8 @@ class Massdrop(Base):
                 # price = bs - needs scraping first
                 # running = bs.something != ''
                 # time_left = bs.something
-                # drop_field.append((title, price, running, time_left))
+                # drop_field.append({"title": title, "price": price, "running": running,
+                #                    "us_only": ("", "US only")[us_only], "time_left": time_left})
             except HTTPError as e:
                 self.logger.error("HTTPError:", e.msg)
                 pass
@@ -77,11 +78,28 @@ class Massdrop(Base):
             self.response_header.get('Massdrop', 'outro_drop')
 
 
+class MassdropText:
 
+    response_header = None
+    intro = ""
+    product_binding = ""
+    outro_drop = ""
+    update_binding = ""
 
+    def __init__(self, filepath):
+        ch = self.response_header = ConfigParser()
+        self.response_header = ch.read(filepath)
 
+        self.intro = ch.get('MASSDROP', 'intro')
+        self.intro_drop = ch.get('MASSDROP', 'intro_drop')
+        self.product_binding = ch.get('MASSDROP', 'product_binding')
+        self.update_binding = ch.get('MASSDROP', 'update_binding')
+        self.outro_drop = ch.get('MASSDROP', 'outro_drop')
 
-
+    def __repr__(self):
+        p = "\n\t"
+        return "Fields:" + p + self.intro + p + self.intro_drop + p + self. product_binding +p\
+            + self.outro_drop
 
 
 
@@ -92,3 +110,7 @@ class Massdrop(Base):
 def init():
     """Init Call from module importer to return only the object itself, rather than the module."""
     return Massdrop()
+
+if __name__ == "__main__":
+    mt = MassdropText("D:\Projects\python\MassdropBot\core\config\MassdropResponses")
+    print(mt)
