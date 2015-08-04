@@ -36,11 +36,10 @@ class MassdropBot:
         database = self.database
         global config
         config = self.config
-        # Disabled for now:
-        # self.submission_stream()
-        # self.comment_stream()
-        # self.multi_thread.go([self.print_submissions])
-        # self.multi_thread.join_threads()
+        self.submission_stream()
+        self.comment_stream()
+        self.multi_thread.go([self.print_submissions])
+        self.multi_thread.join_threads()
 
     def load_responders(self):
         """Main method to load sub-modules, which are designed as a framework for multiple bots.
@@ -86,17 +85,30 @@ class MassdropBot:
     def submission_thread(self):
         for submission in self.submissions:
             for responder in self.responders:
-                if (not self.database.get_thing_from_storage(submission.id, responder.BOT_NAME) and
-                        responder.execute_submission(submission)):
-                    # a responder should return with true of false, so we can manage the database for it here.
-                    # reminder: writing on multiple threads is bad, reading is always fine.
-                    self.database.insert_into_storage(submission.id, responder.BOT_NAME)
-                    pass
+                if not self.database.get_thing_from_storage(submission.id, responder.BOT_NAME):
+                    try:
+                        if submission.is_self and submission.selftext:
+                            responded = responder.execute_submission(submission)
+                        elif submission.is_self:
+                            responded = responder.execute_titlepost(submission)
+                        else:
+                            responded = responder.execute_link(submission)
+
+                        # a responder should return with true of false, so we can manage the database for it here.
+                        # reminder: writing on multiple threads is bad, reading is always fine.
+                        if responded:
+                            self.database.insert_into_storage(submission.id, responder.BOT_NAME)
+                    except Exception as e:
+                        self.logger.error("{} error: {}".format(responder.__class__.__name__, e.__cause__))
 
     def comment_thread(self):
         for comment in self.comments:
             for responder in self.responders:
-                responder.execute_comment(comment)
+                if not self.database.get_thing_from_storage(comment.id, responder.BOT_NAME):
+                    try:
+                        responder.execute_comment(comment)
+                    except Exception as e:
+                        self.logger.error("{} error: {}".format(responder.__class__.__name__, e.__cause__))
 
     def submission_stream(self):
         """Opens a new thread, which reads submissions from a specified subreddit."""

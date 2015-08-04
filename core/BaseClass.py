@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import logging
+import praw
 
 
 class Base(metaclass=ABCMeta):
@@ -24,10 +25,9 @@ class Base(metaclass=ABCMeta):
         self.logger = logging.getLogger("plugin")
 
     def factory_reddit(self):
-        import praw
-
-        self.session = praw.Reddit(user_agent=self.DESCRIPTION)
-        self.session.login(self.USERNAME, self.PASSWORD)
+        session = praw.Reddit(user_agent=self.DESCRIPTION)
+        session.login(self.USERNAME, self.PASSWORD)
+        return session
 
     def factory_config(self, auto_config):
         from os import path
@@ -39,8 +39,20 @@ class Base(metaclass=ABCMeta):
         if auto_config:
             pass
 
+    def get_database(self):
+        global database
+        return database
+
     @abstractmethod
     def execute_submission(self, submission):
+        pass
+
+    @abstractmethod
+    def execute_link(self, link_submission):
+        pass
+
+    @abstractmethod
+    def execute_titlepost(self, title_only):
         pass
 
     @abstractmethod
