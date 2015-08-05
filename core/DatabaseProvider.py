@@ -49,7 +49,7 @@ class DatabaseProvider:
 
         if not self.__database_check_if_exists('subbans'):
             self.cur.execute(
-                'CREATE TABLE IF NOT EXISTS subbans (username STR(50) NOT NULL, bot_module INT(5))'
+                'CREATE TABLE IF NOT EXISTS subbans (subreddit STR(50) NOT NULL, bot_module INT(5))'
             )
 
     def __database_check_if_exists(self, table_name):
@@ -174,15 +174,15 @@ class DatabaseProvider:
     def check_if_user_is_banned(self, username, module):
         """Checks if a particular user has been banned - searches per module and globally"""
         self.cur.execute('SELECT * FROM userbans '
-                         'WHERE usernane = (?) AND '
-                         'module = (SELECT _ROWID_ FROM modules WHERE module_name = (?)) '
+                         'WHERE username = (?) AND '
+                         'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = (?)) '
                          'LIMIT 1', (username, module))
         if self.cur.fetchone():
             return True
 
         self.cur.execute('SELECT * FROM userbans '
-                         'WHERE usernane = (?) AND '
-                         'module = (SELECT _ROWID_ FROM modules WHERE module_name = NULL    ) '
+                         'WHERE username = (?) AND '
+                         'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = NULL    ) '
                          'LIMIT 1', (username,))
         if self.cur.fetchone():
             return True
@@ -190,11 +190,21 @@ class DatabaseProvider:
 
     def add_userban_per_module(self, username, module):
         self.cur.execute("INSERT INTO userbans (username, bot_module) "
-                         "VALUES ((?), (SELECT _ROWID_ FROM bot_modules WHERE module_name = (?)))", (username, module))
+                         "VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name = (?)))", (username, module))
 
     def add_userban_globally(self, username):
         self.cur.execute("INSERT INTO userbans (username, bot_module) "
-                         "VALUES ((?), NULL)", (username, module))
+                         "VALUES ((?), NULL)", (username,))
+
+    def remove_userban_per_module(self, username, module):
+        self.cur.execute("DELETE FROM userbans WHERE username = (?) AND "
+                         "bot_module = (SELECT _ROWID_ FROM modules WHERE modules = (?))", (username, module))
+
+    def remove_userban_globally(self, username):
+        self.cur.execute("DELETE FROM userbans WHERE username = (?)", (username,))
+
+    def purge_all_user_bans(self):
+        self.cur.execute("DELETE FROM userbans")
 
     def get_all_banned_subreddits(self):
         """Returns all bans stored in the userban table"""
@@ -203,42 +213,53 @@ class DatabaseProvider:
 
     def get_all_bans_per_subreddit(self, username):
         """Returns all bans of a particular user"""
-        self.cur.execute('SELECT * FROM subbans WHERE username = (?) LIMIT 1', (username,))
+        self.cur.execute('SELECT * FROM subbans WHERE subreddit = (?) LIMIT 1', (username,))
         return self.cur.fetchall()
 
     def check_if_subreddit_is_banned(self, username, module):
         """Checks if a particular user has been banned - searches per module and globally"""
         self.cur.execute('SELECT * FROM subbans '
-                         'WHERE usernane = (?) AND '
-                         'module = (SELECT _ROWID_ FROM modules WHERE module_name = (?)) '
+                         'WHERE subreddit = (?) AND '
+                         'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = (?)) '
                          'LIMIT 1', (username, module))
         if self.cur.fetchone():
             return True
 
         self.cur.execute('SELECT * FROM subbans '
-                         'WHERE usernane = (?) AND '
-                         'module = (SELECT _ROWID_ FROM modules WHERE module_name = NULL    ) '
+                         'WHERE subreddit = (?) AND '
+                         'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = NULL    ) '
                          'LIMIT 1', (username,))
         if self.cur.fetchone():
             return True
         return False
 
     def add_subreddit_ban_per_module(self, username, module):
-        self.cur.execute("INSERT INTO subbans (username, bot_module) "
-                         "VALUES ((?), (SELECT _ROWID_ FROM bot_modules WHERE module_name = (?)))", (username, module))
+        self.cur.execute("INSERT INTO subbans (subreddit, bot_module) "
+                         "VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name = (?)))", (username, module))
 
     def add_subreddit_ban_globally(self, username):
-        self.cur.execute("INSERT INTO subbans (username, bot_module) "
-                         "VALUES ((?), NULL)", (username, module))
+        self.cur.execute("INSERT INTO subbans (subreddit, bot_module) "
+                         "VALUES ((?), NULL)", (username,))
+
+    def remove_subreddit_ban_per_module(self, subreddit, module):
+        self.cur.execute("DELETE FROM subbans WHERE subreddit = (?) AND "
+                         "bot_module = (SELECT _ROWID_ FROM modules WHERE modules = (?))", (subreddit, module))
+
+    def remove_subreddit_ban_globally(self, subreddit):
+        self.cur.execute("DELETE FROM subbans WHERE subreddit = (?)", (subreddit,))
+
+    def purge_all_subreddit_bans(self):
+        self.cur.execute("DELETE FROM subbans")
 
     def __check_if_module_exists(self, module):
         """Helper method to determine if a module has been already registered. Refrain from using it."""
         self.cur.execute('SELECT COUNT(*) FROM modules WHERE module_name = (?)', (module,))
-        if self.cur.fetchone()[0] == 0:
+        result = self.cur.fetchone()
+        if result[0] == 0:
             return False
-        if self.cur.fetchone()[1] == 1:
+        if result[0] == 1:
             return True
-        if self.cur.fetchone()[1] > 1:
+        if result[0] > 1:
             raise ValueError("A module was registered multiple times and is therefore inconsistent. Call for help.")
 
     def __error_if_not_exists(self, module):
@@ -271,6 +292,8 @@ if __name__ == "__main__":
     db = DatabaseProvider()
     thing_id = "t2_c384fd"
     module = "MassdropBot"
+    user = "MioMoto"
+    subreddit = "dota2"
 #   Commands that work:
 #   >> Storage
 #   db.insert_into_storage(thing_id, module)
@@ -293,6 +316,39 @@ if __name__ == "__main__":
 #   db.wipe_module(module)
 #
 #   >> Printing out the current state of all tables
-    print(db.get_all_update())
-    print(db.get_all_storage())
-    print(db.get_all_modules())
+#    print(db.get_all_update())
+#    print(db.get_all_storage())
+#    print(db.get_all_modules())
+#
+#   >> Subreddit Bans
+#   db.purge_all_subreddit_bans()
+#   db.add_subreddit_ban_per_module(user, module)
+#   db.add_subreddit_ban_globally(user)
+#   print(db.check_if_subreddit_is_banned(user, "asdf"))
+#   print(db.get_all_bans_per_subreddit(user))
+#   print(db.get_all_banned_subreddits())
+#   db.remove_subreddit_ban_globally(user)
+#   print(db.get_all_banned_subreddits())
+#
+#   >> User Bans
+#   db.purge_all_user_bans()
+#   db.add_userban_per_module(user, module)
+#   db.add_userban_globally(user)
+#   print(db.check_if_user_is_banned(user, "asdf"))
+#   print(db.get_all_bans_per_user(user))
+#   print(db.get_all_userbans())
+#   db.remove_userban_globally(user)
+#   print(db.get_all_userbans())
+
+
+
+
+
+
+
+
+
+
+
+
+
