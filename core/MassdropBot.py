@@ -9,6 +9,7 @@ from core import LogProvider
 from core.MultiThreader import MultiThreader
 from core.DatabaseProvider import DatabaseProvider
 from misc import warning_filter
+from core.BaseClass import Base
 
 
 class MassdropBot:
@@ -58,6 +59,9 @@ class MassdropBot:
             # this makes importing the object itself easy and predictable.
             module_object = module.init()
             try:
+                if not isinstance(module_object, Base):
+                    raise ImportError('Module {} does not inherit from Base class'.format(
+                        module_object.__class__.__name__))
                 # could / should fail due to variable validation
                 # (aka: is everything properly set to even function remotely.)
                 module_object.integrity_check()
@@ -85,6 +89,10 @@ class MassdropBot:
     def submission_thread(self):
         for submission in self.submissions:
             for responder in self.responders:
+                # Check beforehand if a subreddit or a user is banned from the bot / globally.
+                if not self.database.check_if_subreddit_is_banned(submission.subreddit_case_name, responder.BOT_NAME) and \
+                    not self.database.check_if_user_is_banned(submission.author.name, responder.BOT_NAME): continue
+
                 if not self.database.get_thing_from_storage(submission.id, responder.BOT_NAME):
                     try:
                         if submission.is_self and submission.selftext:
@@ -97,18 +105,22 @@ class MassdropBot:
                         # a responder should return with true of false, so we can manage the database for it here.
                         # reminder: writing on multiple threads is bad, reading is always fine.
                         if responded:
-                            self.database.insert_into_storage(submission.id, responder.BOT_NAME)
+                            self.database.insert_into_storage(submission.name, responder.BOT_NAME)
                     except Exception as e:
-                        self.logger.error("{} error: {}".format(responder.__class__.__name__, e.__cause__))
+                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e.__cause__))
 
     def comment_thread(self):
         for comment in self.comments:
             for responder in self.responders:
-                if not self.database.get_thing_from_storage(comment.id, responder.BOT_NAME):
+                # Check beforehand if a subreddit or a user is banned from the bot / globally.
+                if not self.database.check_if_subreddit_is_banned(comment.subreddit_case_name, responder.BOT_NAME) and \
+                    not self.database.check_if_user_is_banned(comment.author.name, responder.BOT_NAME): continue
+
+                if not self.database.get_thing_from_storage(comment.name, responder.BOT_NAME):
                     try:
                         responder.execute_comment(comment)
                     except Exception as e:
-                        self.logger.error("{} error: {}".format(responder.__class__.__name__, e.__cause__))
+                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e.__cause__))
 
     def submission_stream(self):
         """Opens a new thread, which reads submissions from a specified subreddit."""

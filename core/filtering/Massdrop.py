@@ -6,7 +6,7 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 import re
 from json import loads
-
+from praw.objects import Comment
 
 class Massdrop(Base):
 
@@ -51,7 +51,11 @@ class Massdrop(Base):
         pass
 
     def update_procedure(self, thing_id):
-        pass
+        comment = self.session.get_info(thing_id=thing_id)
+        if isinstance(comment, Comment):
+            url = self.REGEX.findall(comment.body)
+            if url:
+                response = self.generate_response(url)
 
     def execute_textbody(self, string):
         url = self.REGEX.findall(string)

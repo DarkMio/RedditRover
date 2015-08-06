@@ -12,6 +12,12 @@ class FilterExample(Base):
     def execute_submission(self, submission):
         pass
 
+    def execute_link(self, link_submission):
+        pass
+
+    def execute_titlepost(self, title_only):
+        pass
+
     def update_procedure(self, thing_id):
         pass
 

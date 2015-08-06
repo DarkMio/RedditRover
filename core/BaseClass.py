@@ -39,7 +39,8 @@ class Base(metaclass=ABCMeta):
         if auto_config:
             pass
 
-    def get_database(self):
+    @staticmethod
+    def get_database():
         global database
         return database
 

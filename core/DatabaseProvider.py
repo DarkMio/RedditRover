@@ -23,34 +23,40 @@ class DatabaseProvider:
         self.logger.warning("DB connection has been closed.")
 
     def database_init(self):
+        info = lambda x: self.logger.info("Table '{}' had to be generated.".format(x))
+
         if not self.__database_check_if_exists('storage'):
             self.cur.execute(
-                'CREATE TABLE IF NOT EXISTS storage (thing_id STR(10), bot_module STR(50), timestamp datetime)'
+                'CREATE TABLE IF NOT EXISTS storage (thing_id STR(15), bot_module INT(5), timestamp datetime)'
             )
-            self.logger.info("Table 'storage' had to be generated.")
+            info('storage')
 
         if not self.__database_check_if_exists('update_threads'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS update_threads '
-                '(thing_id STR(10) NOT NULL, bot_module INT(5), created DATETIME, '
+                '(thing_id STR(15) NOT NULL, bot_module INT(5), created DATETIME, '
                 'lifetime DATETIME, last_updated DATETIME, interval INT(5))'
             )
+            info('update_threads')
 
         if not self.__database_check_if_exists('modules'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS modules '
                 '(module_name STR(50))'
             )
+            info('modules')
 
         if not self.__database_check_if_exists('userbans'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS userbans (username STR(50) NOT NULL, bot_module INT(5))'
             )
+            info('userbans')
 
         if not self.__database_check_if_exists('subbans'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS subbans (subreddit STR(50) NOT NULL, bot_module INT(5))'
             )
+            info('subbans')
 
     def __database_check_if_exists(self, table_name):
         """Helper method, Internal check if a table exists, refrain from using it."""
@@ -71,6 +77,7 @@ class DatabaseProvider:
         return self.cur.fetchall()
 
     def get_thing_from_storage(self, thing_id, module):
+        """Returns a single thing from the storage - therefore is true if it exists"""
         self.__error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, timestamp FROM storage
                             WHERE thing_id = (?)
@@ -184,30 +191,33 @@ class DatabaseProvider:
                          'WHERE username = (?) AND '
                          'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = NULL    ) '
                          'LIMIT 1', (username,))
-        if self.cur.fetchone():
-            return True
-        return False
+        return self.cur.fetchone() is True
 
     def add_userban_per_module(self, username, module):
+        """Ban a user for a certain module."""
         self.cur.execute("INSERT INTO userbans (username, bot_module) "
                          "VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name = (?)))", (username, module))
 
     def add_userban_globally(self, username):
+        """Ban a user for all modules."""
         self.cur.execute("INSERT INTO userbans (username, bot_module) "
                          "VALUES ((?), NULL)", (username,))
 
     def remove_userban_per_module(self, username, module):
+        """Remove a ban from a certain module."""
         self.cur.execute("DELETE FROM userbans WHERE username = (?) AND "
                          "bot_module = (SELECT _ROWID_ FROM modules WHERE modules = (?))", (username, module))
 
     def remove_userban_globally(self, username):
+        """Remove ALL bans from a user."""
         self.cur.execute("DELETE FROM userbans WHERE username = (?)", (username,))
 
     def purge_all_user_bans(self):
+        """Remove ALL bans for users - no exception, clears the table."""
         self.cur.execute("DELETE FROM userbans")
 
     def get_all_banned_subreddits(self):
-        """Returns all bans stored in the userban table"""
+        """Returns all bans stored in the subreddit ban table"""
         self.cur.execute('SELECT * FROM subbans')
         return self.cur.fetchall()
 
@@ -229,26 +239,29 @@ class DatabaseProvider:
                          'WHERE subreddit = (?) AND '
                          'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = NULL    ) '
                          'LIMIT 1', (username,))
-        if self.cur.fetchone():
-            return True
-        return False
+        return self.cur.fetchone() is True
 
     def add_subreddit_ban_per_module(self, username, module):
+        """Ban a subreddit for a certain module."""
         self.cur.execute("INSERT INTO subbans (subreddit, bot_module) "
                          "VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name = (?)))", (username, module))
 
     def add_subreddit_ban_globally(self, username):
+        """Ban a subreddit across all subreddits."""
         self.cur.execute("INSERT INTO subbans (subreddit, bot_module) "
                          "VALUES ((?), NULL)", (username,))
 
     def remove_subreddit_ban_per_module(self, subreddit, module):
+        """Remove a subreddit ban for a certain module."""
         self.cur.execute("DELETE FROM subbans WHERE subreddit = (?) AND "
                          "bot_module = (SELECT _ROWID_ FROM modules WHERE modules = (?))", (subreddit, module))
 
     def remove_subreddit_ban_globally(self, subreddit):
+        """Remove a subreddit ban across all modules."""
         self.cur.execute("DELETE FROM subbans WHERE subreddit = (?)", (subreddit,))
 
     def purge_all_subreddit_bans(self):
+        """Removes all subreddit bans. No exceptions."""
         self.cur.execute("DELETE FROM subbans")
 
     def __check_if_module_exists(self, module):

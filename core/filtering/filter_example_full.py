@@ -13,6 +13,12 @@ class FilterExampleFull(Base):
     def execute_comment(self, comment):
         pass
 
+    def execute_titlepost(self, title_only):
+        pass
+
+    def execute_link(self, link_submission):
+        pass
+
     def execute_submission(self, submission):
         pass
 
