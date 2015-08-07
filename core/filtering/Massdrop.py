@@ -56,6 +56,8 @@ class Massdrop(Base):
             url = self.REGEX.findall(comment.body)
             if url:
                 response = self.generate_response(url)
+                comment.edit(response)
+                return True
 
     def execute_textbody(self, string):
         url = self.REGEX.findall(string)

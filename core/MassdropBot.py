@@ -1,5 +1,6 @@
 from configparser import ConfigParser
 from os import path
+from time import time, sleep
 import praw
 import core.filtering as filtering
 import pkgutil
@@ -20,6 +21,7 @@ class MassdropBot:
     responders = None  # Keeps track of all responder objects
     multi_thread = None  # Reference to MultiThreader, which ... does the threading.
     database = None  # Reference to the DatabaseProvider
+    delete_after = None  # All activity older than x seconds will be cleaned from the database.
 
     reddit = None  # Anonymous reddit session
     submissions = None  # Kinda list of submissions which the threads work through
@@ -37,6 +39,7 @@ class MassdropBot:
         database = self.database
         global config
         config = self.config
+        self.delete_after = self.config.get('REDDIT', 'delete_after')
         self.submission_stream()
         self.comment_stream()
         self.multi_thread.go([self.print_submissions])
@@ -121,6 +124,20 @@ class MassdropBot:
                         responder.execute_comment(comment)
                     except Exception as e:
                         self.logger.error("{} error: {}".format(responder.BOT_NAME, e.__cause__))
+
+    def update_thread(self):
+        while True:
+            for responder in self.responders:
+                for thread in self.database.get_all_to_update(responder.BOT_NAME):
+                    self.database.update_timestamp_in_update(thread, responder.BOT_NAME)
+                    try:
+                        responder.update_procedure(thread)
+                    except Exception as e:
+                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e.__cause__))
+
+            self.database.clean_up_database(int(time()) - self.delete_after)
+            # after working through all update threads, sleep for five minutes. #saveresources
+            sleep(360)
 
     def submission_stream(self):
         """Opens a new thread, which reads submissions from a specified subreddit."""
