@@ -153,11 +153,11 @@ class MassdropBot:
 
     def submission_stream(self):
         """Opens a new thread, which reads submissions from a specified subreddit."""
-        self.submissions = praw.helpers.submission_stream(self.reddit_poller, 'massdropbot', limit=None, verbosity=0)
+        self.submissions = praw.helpers.submission_stream(self.reddit_poller, 'all', limit=None, verbosity=0)
 
     def comment_stream(self):
         """Opens a new thread, which reads comments from a specified subreddit."""
-        self.comments = praw.helpers.comment_stream(self.reddit_poller, 'massdropbot', limit=None, verbosity=0)
+        self.comments = praw.helpers.comment_stream(self.reddit_poller, 'all', limit=None, verbosity=0)
 
     def read_config(self):
         """Reads the config."""

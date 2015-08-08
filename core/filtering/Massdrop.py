@@ -28,7 +28,8 @@ class Massdrop(Base):
             response = self.generate_response(url)
             if response:
                 self.oauth.refresh()
-                self.session._add_comment(comment.fullname, response)
+                generated = self.session._add_comment(comment.fullname, response)
+                self.database.insert_into_update(generated.name, self.BOT_NAME, 86400, 3600)
                 return True
         return False
 
@@ -38,7 +39,8 @@ class Massdrop(Base):
             response = self.generate_response(url)
             if response:
                 self.oauth.refresh()
-                self.session._add_comment(submission.name, response)
+                generated = self.session._add_comment(submission.name, response)
+                self.database.insert_into_update(generated.name, self.BOT_NAME, 86400, 3600)
                 return True
         return False
 
@@ -48,7 +50,8 @@ class Massdrop(Base):
             response = self.generate_response(link)
             if response:
                 self.oauth.refresh()
-                self.session._add_comment(link_submission.name, response)
+                generated = self.session._add_comment(link_submission.name, response)
+                self.database.insert_into_update(generated.name, self.BOT_NAME, 86400, 3600)
                 return True
         return False
 
