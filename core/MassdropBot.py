@@ -1,6 +1,6 @@
 from configparser import ConfigParser
 from os import path
-from time import time, sleep
+from time import time, sleep, strptime
 import praw
 import core.filtering as filtering
 import pkgutil
@@ -23,7 +23,7 @@ class MassdropBot:
     database = None  # Reference to the DatabaseProvider
     delete_after = None  # All activity older than x seconds will be cleaned from the database.
 
-    reddit = None  # Anonymous reddit session
+    reddit_poller = None  # Anonymous reddit session
     submissions = None  # Kinda list of submissions which the threads work through
     comments = None  # Same applies here, the comments are like a list, another thread runs through them
 
@@ -31,18 +31,16 @@ class MassdropBot:
         warning_filter.ignore()
         self.logger = LogProvider.setup_logging(log_level="DEBUG")
         self.read_config()
-        self.load_responders()
         self.multi_thread = MultiThreader()
         self.database = DatabaseProvider()
-        self.reddit = praw.Reddit(user_agent='Data-Poller for several logins by /u/DarkMio')
-        global database
-        database = self.database
+        self.load_responders()
+        self.reddit_poller = praw.Reddit(user_agent='Data-Poller for several logins by /u/DarkMio')
         global config
         config = self.config
         self.delete_after = self.config.get('REDDIT', 'delete_after')
         self.submission_stream()
         self.comment_stream()
-        self.multi_thread.go([self.print_submissions])
+        self.multi_thread.go([self.comment_thread], [self.submission_thread], [self.update_thread])
         self.multi_thread.join_threads()
 
     def load_responders(self):
@@ -60,7 +58,7 @@ class MassdropBot:
             module = __import__(modname, fromlist="dummy")
             # every sub module has to have an object provider,
             # this makes importing the object itself easy and predictable.
-            module_object = module.init()
+            module_object = module.init(self.database)
             try:
                 if not isinstance(module_object, Base):
                     raise ImportError('Module {} does not inherit from Base class'.format(
@@ -68,6 +66,7 @@ class MassdropBot:
                 # could / should fail due to variable validation
                 # (aka: is everything properly set to even function remotely.)
                 module_object.integrity_check()
+                self.database.register_module(module_object.BOT_NAME)
                 self.logger.info('Module "{}" is initialized and ready.'.format(module_object.__class__.__name__))
             except AssertionError as e:
                 # Catches the error and skips the module. The import will now be reversed.
@@ -90,11 +89,12 @@ class MassdropBot:
             break
 
     def submission_thread(self):
+        self.logger.info("Opened submission stream successfully.")
         for submission in self.submissions:
             for responder in self.responders:
                 # Check beforehand if a subreddit or a user is banned from the bot / globally.
-                if not self.database.check_if_subreddit_is_banned(submission.subreddit_case_name, responder.BOT_NAME) and \
-                    not self.database.check_if_user_is_banned(submission.author.name, responder.BOT_NAME): continue
+                if self.database.check_if_subreddit_is_banned(submission.subreddit._case_name, responder.BOT_NAME) and \
+                    self.database.check_if_user_is_banned(submission.author.name, responder.BOT_NAME): continue
 
                 if not self.database.get_thing_from_storage(submission.id, responder.BOT_NAME):
                     try:
@@ -110,44 +110,54 @@ class MassdropBot:
                         if responded:
                             self.database.insert_into_storage(submission.name, responder.BOT_NAME)
                     except Exception as e:
-                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e.__cause__))
+                        import traceback
+                        self.logger.error(traceback.print_exc())
+                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e))
 
     def comment_thread(self):
+        self.logger.info("Opened comment stream successfully.")
         for comment in self.comments:
             for responder in self.responders:
                 # Check beforehand if a subreddit or a user is banned from the bot / globally.
-                if not self.database.check_if_subreddit_is_banned(comment.subreddit_case_name, responder.BOT_NAME) and \
-                    not self.database.check_if_user_is_banned(comment.author.name, responder.BOT_NAME): continue
+                if self.database.check_if_subreddit_is_banned(comment.subreddit._case_name, responder.BOT_NAME) and \
+                    self.database.check_if_user_is_banned(comment.author.name, responder.BOT_NAME): continue
 
                 if not self.database.get_thing_from_storage(comment.name, responder.BOT_NAME):
                     try:
-                        responder.execute_comment(comment)
+                        if responder.execute_comment(comment):
+                            self.database.insert_into_storage(comment.name, responder.BOT_NAME)
                     except Exception as e:
-                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e.__cause__))
+                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e, e.__traceback__))
 
     def update_thread(self):
         while True:
             for responder in self.responders:
-                for thread in self.database.get_all_to_update(responder.BOT_NAME):
-                    self.database.update_timestamp_in_update(thread, responder.BOT_NAME)
-                    try:
-                        responder.update_procedure(thread)
-                    except Exception as e:
-                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e.__cause__))
+                threads = self.database.get_all_to_update(responder.BOT_NAME)
+                if threads:
+                    for thread in threads:
+                        # reformat the entry from the database, so we can feed it directly into the update_procedure
+                        thread_dict = {'thing_id': thread[0], 'bot_module': thread[1],
+                                       'created': strptime(thread[2], '%Y-%m-%d %H:%M:%S'),
+                                       'lifetime': strptime(thread[3], '%Y-%m-%d %H:%M:%S'),
+                                       'last_updated': strptime(thread[4], '%Y-%m-%d %H:%M:%S'),
+                                       'interval': thread[5]}
+                        self.database.update_timestamp_in_update(thread_dict['thing_id'], responder.BOT_NAME)
+                        try:
+                            responder.update_procedure(**thread_dict)
+                        except Exception as e:
+                            self.logger.error("{} error: {}".format(responder.BOT_NAME, e, e.__traceback__))
 
-            self.database.clean_up_database(int(time()) - self.delete_after)
+            self.database.clean_up_database(int(time()) - int(self.delete_after))
             # after working through all update threads, sleep for five minutes. #saveresources
             sleep(360)
 
     def submission_stream(self):
         """Opens a new thread, which reads submissions from a specified subreddit."""
-        self.submissions = praw.helpers.submission_stream(self.reddit, 'massdropbot', limit=None, verbosity=0)
-        self.logger.info("Opened submission stream successfully.")
+        self.submissions = praw.helpers.submission_stream(self.reddit_poller, 'massdropbot', limit=None, verbosity=0)
 
     def comment_stream(self):
         """Opens a new thread, which reads comments from a specified subreddit."""
-        self.comments = praw.helpers.comment_stream(self.reddit, 'massdropbot', limit=None, verbosity=0)
-        self.logger.info("Opened comment stream successfully.")
+        self.comments = praw.helpers.comment_stream(self.reddit_poller, 'massdropbot', limit=None, verbosity=0)
 
     def read_config(self):
         """Reads the config."""

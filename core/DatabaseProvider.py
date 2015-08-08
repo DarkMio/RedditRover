@@ -79,10 +79,10 @@ class DatabaseProvider:
     def get_thing_from_storage(self, thing_id, module):
         """Returns a single thing from the storage - therefore is true if it exists"""
         self.__error_if_not_exists(module)
-        self.cur.execute("""SELECT thing_id, module_name, timestamp FROM storage
+        self.cur.execute("""SELECT thing_id, bot_module, timestamp FROM storage
                             WHERE thing_id = (?)
-                            AND module_name = (SELECT _ROWID_ FROM modules WHERE module_name=(?))
-                            MAX 1""",
+                            AND bot_module = (SELECT _ROWID_ FROM modules WHERE module_name=(?))
+                            LIMIT 1""",
                          (thing_id, module,))
         return self.cur.fetchone()
 
@@ -141,7 +141,7 @@ class DatabaseProvider:
     def get_all_to_update(self, module):
         """Returns _all_ things (comments or submissions) for a module."""
         self.__select_to_update(module)
-        self.cur.fetchall()
+        return self.cur.fetchall()
 
     def update_timestamp_in_update(self, thing_id, module):
         """Updates the timestamp when a thing was updated last."""
@@ -352,11 +352,6 @@ if __name__ == "__main__":
 #   print(db.get_all_userbans())
 #   db.remove_userban_globally(user)
 #   print(db.get_all_userbans())
-
-
-
-
-
 
 
 

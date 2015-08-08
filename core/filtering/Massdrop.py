@@ -8,54 +8,59 @@ import re
 from json import loads
 from praw.objects import Comment
 
+
 class Massdrop(Base):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, database):
+        super().__init__(database)
         super().factory_config(True)
         self.BOT_NAME = 'MassdropBot'
         self.DESCRIPTION = self.config.get(self.BOT_NAME, 'description')
         self.USERNAME = self.config.get('MassdropBot', 'username')
         self.PASSWORD = self.config.get('MassdropBot', 'password')
         self.REGEX = re.compile(r"(?P<url>https?:\/\/(?:www\.)?massdrop\.com\/buy\/[^\s;,.\])]*)", re.UNICODE)
-        # self.session = self.factory_reddit()
-        # self.responses = MassdropText(path.dirname(__file__) + "../config/MassdropResponses.ini")
-        self.responses = MassdropText("../config/MassdropResponses.ini")
-        self.get_database()
+        self.session, self.oauth = self.factory_reddit(config_file=path.dirname(__file__) + "/../config/Massdrop_OAuth.ini")
+        self.responses = MassdropText(path.dirname(__file__) + "/../config/MassdropResponses.ini")
 
     def execute_comment(self, comment):
         url = self.REGEX.findall(comment.body)
         if url:
             response = self.generate_response(url)
-            self.session._add_comment(comment.fullname, response)
-            return True
+            if response:
+                self.oauth.refresh()
+                self.session._add_comment(comment.fullname, response)
+                return True
         return False
 
     def execute_submission(self, submission):
         url = self.REGEX.findall(submission.selftext)
         if url:
             response = self.generate_response(url)
-            self.session._add_comment(submission.thing_id, response)
-            return True
+            if response:
+                self.oauth.refresh()
+                self.session._add_comment(submission.name, response)
+                return True
         return False
 
     def execute_link(self, link_submission):
-        link = self.REGEX.search(link_submission.url).groups()
+        link = self.REGEX.findall(link_submission.url)
         if link:
-            response = self.generate_response([link])
-            self.session._add_comment(link_submission.thing_id, response)
-            return True
+            response = self.generate_response(link)
+            if response:
+                self.oauth.refresh()
+                self.session._add_comment(link_submission.name, response)
+                return True
         return False
 
     def execute_titlepost(self, title_only):
         pass
 
-    def update_procedure(self, thing_id):
+    def update_procedure(self, thing_id, created, lifetime, last_updated, interval):
         comment = self.session.get_info(thing_id=thing_id)
         if isinstance(comment, Comment):
             url = self.REGEX.findall(comment.body)
             if url:
-                response = self.generate_response(url)
+                response = self.generate_response(url, from_update=True)
                 comment.edit(response)
                 return True
 
@@ -65,13 +70,19 @@ class Massdrop(Base):
             response = self.generate_response(url)
             print(response)
 
-    def generate_response(self, massdrop_links, time_left=None):
+    def generate_response(self, massdrop_links, time_left=None, from_update=False):
         """Takes multiple links at once, iterates, generates a response appropiately.
            Idea is to take into account: Title, Price, Running Drop, Time left"""
         drop_field = []
         textbody = ""
+        fixed_urls = 0
         for url in massdrop_links:
-            fix_url = url + ('?', '&')['?' in url] + 'mode=guest_open'
+            # if that is already a fixed url, we may ignore it.
+            fix_url = url
+            if 'mode=guest_open' in url and not from_update:
+                continue
+            if not from_update:
+                fix_url = fix_url + ('?', '&')['?' in url] + 'mode=guest_open'
             try:
                 pass
                 bs = BeautifulSoup(urlopen(fix_url))
@@ -96,18 +107,22 @@ class Massdrop(Base):
                     time_left = "drop has ended"
                 drop_field.append({"title": product_name, 'current_price': current_price, 'prices': prices,
                                    "time_left": time_left, 'fix_url': fix_url})
-
+                fixed_urls += 1
             except HTTPError as e:
                 self.logger.error("HTTPError:", e.msg)
                 pass
             except Exception as e:
-                self.logger.error("Oh noes, an unexpected error happened:", e.__cause__)
+                self.logger.error("Oh noes, an unexpected error happened:", e)
+
+        if len(drop_field) == 0:
+            return
 
         # item is a dictionary that fits on the right binding - saves time, is short
         for item in drop_field:
             textbody += self.responses.product_binding.format(**item)
 
-        textbody = self.responses.intro_drop + textbody + self.responses.outro_drop
+        textbody = self.responses.intro_drop.format(products=('product', 'products')[fixed_urls > 1]) + \
+                   textbody + self.responses.outro_drop
         return textbody.replace('\\n', '\n')
 
 
@@ -149,17 +164,15 @@ def massdrop_pricer(price, pricelist):
         return ""
 
 
-def init():
+def init(database):
     """Init Call from module importer to return only the object itself, rather than the module."""
-    return Massdrop()
+    return Massdrop(database)
 
 if __name__ == "__main__":
     mt = MassdropText("..\config\MassdropResponses.ini")
     print(mt)
     md = Massdrop()
 
-    print(md.execute_textbody("""
-                        1:    https://www.massdrop.com/buy/vortex-poker-iii-compact-keyboard
-                        2:    https://www.massdrop.com/buy/vortex-pbt-keycaps?mode=guest_open,
-                        3:    https://www.massdrop.com/buy/spyderco-manix-2-lightweight-black-blade
-                              """))
+    # print(md.execute_textbody('https://www.massdrop.com/buy/goboof-alfa'))
+
+    print(md.update_procedure("t1_ctv1673", 0, 0, 0, 0))
