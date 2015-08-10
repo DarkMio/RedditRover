@@ -144,11 +144,11 @@ class MassdropText:
     def __init__(self, filepath):
         ch = ConfigParser()
         ch.read(filepath)
-        self.intro = ch.get('MASSDROP', 'intro')
-        self.intro_drop = ch.get('MASSDROP', 'intro_drop')
-        self.product_binding = ch.get('MASSDROP', 'product_binding')
-        self.update_binding = ch.get('MASSDROP', 'update_binding')
-        self.outro_drop = ch.get('MASSDROP', 'outro_drop')
+        self.intro = ch.get('MassdropBot', 'intro')
+        self.intro_drop = ch.get('MassdropBot', 'intro_drop')
+        self.product_binding = ch.get('MassdropBot', 'product_binding')
+        self.update_binding = ch.get('MassdropBot', 'update_binding')
+        self.outro_drop = ch.get('MassdropBot', 'outro_drop')
 
     def __repr__(self):
         p = "\n\t"
@@ -158,7 +158,7 @@ class MassdropText:
 
 def massdrop_pricer(price, pricelist):
     if isinstance(price, str) and price.startswith("$"):
-        price = price[1:]
+        price = price[1:].replace(',', '')
     pricelist = [float(x) for x in pricelist if float(x) < float(price)]
     if len(pricelist) > 1:
         pricestring = "${:.2f}".format(pricelist[0])
