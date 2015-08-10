@@ -17,17 +17,22 @@ class SmallSubBot(Base):
         self.DESCRIPTION_REGEX = re.compile(r"(\[).*?(\]\(.*?\))|(\\n)|(#)")  # Helps escaping shitty reddit markdown
         self.session, self.oauth = self.factory_reddit(config_file=dirname(__file__)+"/../config/"+self.OAUTH_FILENAME)
         self.responses = SmallSubText(dirname(__file__) + "/../config/bot_config.ini")
+        self.banwords = ['x-post', 'xpost', 'crosspost', 'cross post', 'x/post',
+                         'x\\post', 'via', 'from', 'hhh', 'trending subreddits']
 
     def execute_comment(self, comment):
         pass
 
     def execute_submission(self, submission):
+        if any(bans in submission.title.lower() for bans in self.banwords): return False
         return self.general_action(submission)
 
     def execute_link(self, link_submission):
+        if any(bans in link_submission.title.lower() for bans in self.banwords): return False
         return self.general_action(link_submission)
 
     def execute_titlepost(self, title_only):
+        if any(bans in title_only.title.lower() for bans in self.banwords): return False
         return self.general_action(title_only)
 
     def update_procedure(self, thing_id, created, lifetime, last_updated, interval):
@@ -43,8 +48,12 @@ class SmallSubBot(Base):
     def general_action(self, submission):
         result = self.REGEX.findall(" " + submission.title)
         if result:
+            self.oauth.refresh()
             response = self.generate_response(result, submission.subreddit.display_name)
-            return response
+            if response:
+                self.session._add_comment(submission.name, response)
+                return True
+        return False
 
     def generate_response(self, subreddits, source_subreddit_name):
         subreddit_infos = []
@@ -62,10 +71,7 @@ class SmallSubBot(Base):
             if already_found: continue
 
             target = self.session.get_subreddit(sub_name)
-            if target.subscribers < 10**5:
-
-
-
+            if target.subscribers and target.subscribers < 10**5:
                 description = self.DESCRIPTION_REGEX.sub('', target.description)
                 description = self.description_formatter(description, target.over18)
                 subreddit_infos.append({'subreddit': sub_name, 'description': description})
@@ -76,7 +82,6 @@ class SmallSubBot(Base):
 
         textbody = self.responses.intro + textbody + self.responses.outro
         return textbody.replace('\\n', '\n')
-
 
     @staticmethod
     def description_formatter(description, over18):
