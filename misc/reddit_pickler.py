@@ -1,6 +1,5 @@
 """Looks like PRAW doesn't want to get pickle'd.
     Both single submissions and generators are indeed broken."""
-
 from praw import Reddit
 import pickle
 from sys import setrecursionlimit
