@@ -3,6 +3,7 @@ from os import path, popen
 from time import time, sleep, strptime
 from praw.handlers import MultiprocessHandler
 from sys import exit
+from praw.errors import Forbidden, NotFound
 import praw
 import core.filtering as filtering
 import pkgutil
@@ -12,7 +13,6 @@ from core.MultiThreader import MultiThreader
 from core.DatabaseProvider import DatabaseProvider
 from misc import warning_filter
 from core.BaseClass import Base
-
 
 
 class MassdropBot:
@@ -44,10 +44,11 @@ class MassdropBot:
                                                  handler=self.praw_handler)
             self.comment_poller = praw.Reddit(user_agent='Comment-Poller for several logins by /u/DarkMio',
                                               handler=self.praw_handler)
-        except ConnectionRefusedError as e:
+        except Exception as e:  # I am sorry linux, but ConnectionRefused Error can't be imported..
             self.logger.error("PRAW Multiprocess server does not seem to be running. "
                               "Please make sure that the server is running and responding. "
                               "Bot is shutting down now.")
+            self.logger.error(e)
             exit(-1)
         self.delete_after = self.config.get('REDDIT', 'delete_after')
         self.submission_stream()
@@ -107,8 +108,8 @@ class MassdropBot:
             for responder in self.responders:
                 self.lock.acquire(True)
                 # Check beforehand if a subreddit or a user is banned from the bot / globally.
-                if self.database.check_if_subreddit_is_banned(submission.subreddit._case_name, responder.BOT_NAME) and \
-                    self.database.check_if_user_is_banned(submission.author.name, responder.BOT_NAME): continue
+                if self.database.check_if_subreddit_is_banned(submission.subreddit.display_name, responder.BOT_NAME) \
+                   and self.database.check_if_user_is_banned(submission.author.name, responder.BOT_NAME): continue
 
                 if not self.database.get_thing_from_storage(submission.id, responder.BOT_NAME):
                     try:
@@ -123,6 +124,15 @@ class MassdropBot:
                         # reminder: writing on multiple threads is bad, reading is always fine.
                         if responded:
                             self.database.insert_into_storage(submission.name, responder.BOT_NAME)
+
+                    except Forbidden:
+                        name = submission.subreddit.display_name
+                        self.database.add_subreddit_ban_per_module(name,
+                                                                   responder.BOT_NAME)
+                        self.logger.error("It seems like this bot is banned in '{}'. The bot will ban the subreddit now"
+                                          " from the module to escape it automatically.".format(name))
+                    except NotFound:
+                        pass
                     except Exception as e:
                         import traceback
                         self.logger.error(traceback.print_exc())
@@ -142,6 +152,15 @@ class MassdropBot:
                     try:
                         if responder.execute_comment(comment):
                             self.database.insert_into_storage(comment.name, responder.BOT_NAME)
+
+                    except Forbidden:
+                        name = comment.subreddit.display_name
+                        self.database.add_subreddit_ban_per_module(name,
+                                                                   responder.BOT_NAME)
+                        self.logger.error("It seems like this bot is banned in '{}'. The bot will ban the subreddit now"
+                                          " from the module to escape it automatically.".format(name))
+                    except NotFound:
+                        pass
                     except Exception as e:
                         import traceback
                         self.logger.error(traceback.print_exc())
