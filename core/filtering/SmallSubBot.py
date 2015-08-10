@@ -115,7 +115,6 @@ class SmallSubText:
         return "Fields:" + p + self.intro + p + self.subreddit_binding + p + self.outro
 
 
-
 def init(database):
     """Init Call from module importer to return only the object itself, rather than the module."""
     return SmallSubBot()
