@@ -1,6 +1,6 @@
 from core.BaseClass import Base
 from configparser import ConfigParser
-from os import path
+from os.path import dirname
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from urllib.error import HTTPError
@@ -13,14 +13,14 @@ class Massdrop(Base):
 
     def __init__(self, database):
         super().__init__(database)
-        super().factory_config(True)
+        super().factory_config()
         self.BOT_NAME = 'MassdropBot'
         self.DESCRIPTION = self.config.get(self.BOT_NAME, 'description')
-        self.USERNAME = self.config.get('MassdropBot', 'username')
-        self.PASSWORD = self.config.get('MassdropBot', 'password')
+        self.USERNAME = self.config.get(self.BOT_NAME, 'username')
+        self.OAUTH_FILENAME = self.config.get(self.BOT_NAME, 'oauth')
         self.REGEX = re.compile(r"(?P<url>https?:\/\/(?:www\.)?massdrop\.com\/buy\/[^\s;,.\])]*)", re.UNICODE)
-        self.session, self.oauth = self.factory_reddit(config_file=path.dirname(__file__) + "/../config/Massdrop_OAuth.ini")
-        self.responses = MassdropText(path.dirname(__file__) + "/../config/MassdropResponses.ini")
+        self.session, self.oauth = self.factory_reddit(config_file=dirname(__file__)+"/../config/"+self.OAUTH_FILENAME)
+        self.responses = MassdropText(dirname(__file__) + "/../config/bot_config.ini")
 
     def execute_comment(self, comment):
         url = self.REGEX.findall(comment.body)
@@ -29,7 +29,7 @@ class Massdrop(Base):
             if response:
                 self.oauth.refresh()
                 generated = self.session._add_comment(comment.fullname, response)
-                self.database.insert_into_update(generated.name, self.BOT_NAME, 86400, 3600)
+                self.database.insert_into_update(generated.name, self.BOT_NAME, 1209600, 43200)
                 return True
         return False
 
@@ -40,7 +40,7 @@ class Massdrop(Base):
             if response:
                 self.oauth.refresh()
                 generated = self.session._add_comment(submission.name, response)
-                self.database.insert_into_update(generated.name, self.BOT_NAME, 86400, 3600)
+                self.database.insert_into_update(generated.name, self.BOT_NAME, 1209600, 43200)
                 return True
         return False
 
@@ -51,7 +51,7 @@ class Massdrop(Base):
             if response:
                 self.oauth.refresh()
                 generated = self.session._add_comment(link_submission.name, response)
-                self.database.insert_into_update(generated.name, self.BOT_NAME, 86400, 3600)
+                self.database.insert_into_update(generated.name, self.BOT_NAME, 1209600, 43200)
                 return True
         return False
 
@@ -59,13 +59,19 @@ class Massdrop(Base):
         pass
 
     def update_procedure(self, thing_id, created, lifetime, last_updated, interval):
+        self.oauth.refresh()
         comment = self.session.get_info(thing_id=thing_id)
+        if comment.score < -2:
+            comment.delete()
+            self.database.delete_from_update(thing_id, self.BOT_NAME)
+            return
+
         if isinstance(comment, Comment):
             url = self.REGEX.findall(comment.body)
             if url:
                 response = self.generate_response(url, from_update=True)
                 comment.edit(response)
-                return True
+                return
 
     def execute_textbody(self, string):
         url = self.REGEX.findall(string)
@@ -88,7 +94,7 @@ class Massdrop(Base):
                 fix_url = fix_url + ('?', '&')['?' in url] + 'mode=guest_open'
             try:
                 pass
-                bs = BeautifulSoup(urlopen(fix_url))
+                bs = BeautifulSoup(urlopen(fix_url), "html.parser")
                 # There is only one H1 - the product name - which is handy.
                 product_name = bs.find('h1').string
                 # BS4 returns a type error on a find.strings when there is nothing. So we select first, check if there
@@ -130,16 +136,14 @@ class Massdrop(Base):
 
 
 class MassdropText:
-    response_header = None
     intro = ""
     product_binding = ""
     outro_drop = ""
     update_binding = ""
 
     def __init__(self, filepath):
-        ch = self.response_header = ConfigParser()
-        self.response_header = ch.read(filepath)
-
+        ch = ConfigParser()
+        ch.read(filepath)
         self.intro = ch.get('MASSDROP', 'intro')
         self.intro_drop = ch.get('MASSDROP', 'intro_drop')
         self.product_binding = ch.get('MASSDROP', 'product_binding')

@@ -25,6 +25,9 @@ class MultiThreader(object):
             while t.isAlive():
                 t.join(5)
 
+    def get_lock(self):
+        return threading.RLock()
+
     @staticmethod
     def repeater(thread):
         """Test method for tinkering with threading."""

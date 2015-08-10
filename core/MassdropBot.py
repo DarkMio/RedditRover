@@ -1,16 +1,18 @@
 from configparser import ConfigParser
-from os import path
+from os import path, popen
 from time import time, sleep, strptime
+from praw.handlers import MultiprocessHandler
+from sys import exit
 import praw
 import core.filtering as filtering
 import pkgutil
-import warnings
 
 from core import LogProvider
 from core.MultiThreader import MultiThreader
 from core.DatabaseProvider import DatabaseProvider
 from misc import warning_filter
 from core.BaseClass import Base
+
 
 
 class MassdropBot:
@@ -23,7 +25,9 @@ class MassdropBot:
     database = None  # Reference to the DatabaseProvider
     delete_after = None  # All activity older than x seconds will be cleaned from the database.
 
-    reddit_poller = None  # Anonymous reddit session
+    praw_handler = None  # Will hold the handler to connect to the praw-multiprocess server.
+    submission_poller = None  # Anonymous reddit session for submissions.
+    comment_poller = None  # Anonymous reddit session for comments.
     submissions = None  # Kinda list of submissions which the threads work through
     comments = None  # Same applies here, the comments are like a list, another thread runs through them
 
@@ -33,13 +37,22 @@ class MassdropBot:
         self.read_config()
         self.multi_thread = MultiThreader()
         self.database = DatabaseProvider()
-        self.load_responders()
-        self.reddit_poller = praw.Reddit(user_agent='Data-Poller for several logins by /u/DarkMio')
-        global config
-        config = self.config
+        try:
+            self.load_responders()
+            self.praw_handler = MultiprocessHandler()
+            self.submission_poller = praw.Reddit(user_agent='Submission-Poller for several logins by /u/DarkMio',
+                                                 handler=self.praw_handler)
+            self.comment_poller = praw.Reddit(user_agent='Comment-Poller for several logins by /u/DarkMio',
+                                              handler=self.praw_handler)
+        except ConnectionRefusedError as e:
+            self.logger.error("PRAW Multiprocess server does not seem to be running. "
+                              "Please make sure that the server is running and responding. "
+                              "Bot is shutting down now.")
+            exit(-1)
         self.delete_after = self.config.get('REDDIT', 'delete_after')
         self.submission_stream()
         self.comment_stream()
+        self.lock = self.multi_thread.get_lock()
         self.multi_thread.go([self.comment_thread], [self.submission_thread], [self.update_thread])
         self.multi_thread.join_threads()
 
@@ -92,6 +105,7 @@ class MassdropBot:
         self.logger.info("Opened submission stream successfully.")
         for submission in self.submissions:
             for responder in self.responders:
+                self.lock.acquire(True)
                 # Check beforehand if a subreddit or a user is banned from the bot / globally.
                 if self.database.check_if_subreddit_is_banned(submission.subreddit._case_name, responder.BOT_NAME) and \
                     self.database.check_if_user_is_banned(submission.author.name, responder.BOT_NAME): continue
@@ -113,11 +127,13 @@ class MassdropBot:
                         import traceback
                         self.logger.error(traceback.print_exc())
                         self.logger.error("{} error: {}".format(responder.BOT_NAME, e))
+                self.lock.release()
 
     def comment_thread(self):
         self.logger.info("Opened comment stream successfully.")
         for comment in self.comments:
             for responder in self.responders:
+                self.lock.acquire(True)
                 # Check beforehand if a subreddit or a user is banned from the bot / globally.
                 if self.database.check_if_subreddit_is_banned(comment.subreddit._case_name, responder.BOT_NAME) and \
                     self.database.check_if_user_is_banned(comment.author.name, responder.BOT_NAME): continue
@@ -127,16 +143,20 @@ class MassdropBot:
                         if responder.execute_comment(comment):
                             self.database.insert_into_storage(comment.name, responder.BOT_NAME)
                     except Exception as e:
-                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e, e.__traceback__))
+                        import traceback
+                        self.logger.error(traceback.print_exc())
+                        self.logger.error("{} error: {}".format(responder.BOT_NAME, e))
+                self.lock.release()
 
     def update_thread(self):
         while True:
+            self.lock.acquire(True)
             for responder in self.responders:
                 threads = self.database.get_all_to_update(responder.BOT_NAME)
                 if threads:
                     for thread in threads:
                         # reformat the entry from the database, so we can feed it directly into the update_procedure
-                        thread_dict = {'thing_id': thread[0], 'bot_module': thread[1],
+                        thread_dict = {'thing_id': thread[0],
                                        'created': strptime(thread[2], '%Y-%m-%d %H:%M:%S'),
                                        'lifetime': strptime(thread[3], '%Y-%m-%d %H:%M:%S'),
                                        'last_updated': strptime(thread[4], '%Y-%m-%d %H:%M:%S'),
@@ -148,16 +168,18 @@ class MassdropBot:
                             self.logger.error("{} error: {}".format(responder.BOT_NAME, e, e.__traceback__))
 
             self.database.clean_up_database(int(time()) - int(self.delete_after))
+            self.lock.release()
+
             # after working through all update threads, sleep for five minutes. #saveresources
             sleep(360)
 
     def submission_stream(self):
         """Opens a new thread, which reads submissions from a specified subreddit."""
-        self.submissions = praw.helpers.submission_stream(self.reddit_poller, 'all', limit=None, verbosity=0)
+        self.submissions = praw.helpers.submission_stream(self.submission_poller, 'all', limit=None, verbosity=0)
 
     def comment_stream(self):
         """Opens a new thread, which reads comments from a specified subreddit."""
-        self.comments = praw.helpers.comment_stream(self.reddit_poller, 'all', limit=None, verbosity=0)
+        self.comments = praw.helpers.comment_stream(self.comment_poller, 'all', limit=None, verbosity=0)
 
     def read_config(self):
         """Reads the config."""

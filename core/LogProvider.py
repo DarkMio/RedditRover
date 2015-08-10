@@ -29,14 +29,16 @@ def setup_logging(log_level="INFO", console_log_level=None):
        This logging handler is quite powerful and nicely formatted."""
     null_handler = logging.NullHandler()
     logging.basicConfig(level=log_level, handlers=[null_handler])
+    # logging.basicConfig(level=log_level)
 
     if console_log_level is None:
         console_log_level = log_level
 
-    # log_level = LOGGING_LEVELS[log_level]
+    log_level = LOGGING_LEVELS[log_level]
     console_log_level = LOGGING_LEVELS[console_log_level]
 
     logging_format = logging.Formatter(FORMAT, datefmt=TIME_FORMAT)
+
 
     # Set up the handler for logging to console
     filter_info = SingleLevelFilter(logging.INFO, True)
@@ -54,18 +56,22 @@ def setup_logging(log_level="INFO", console_log_level=None):
 
     # this logger writes completely into the console.
     bot_logger = logging.getLogger("bot")
+    bot_logger.propagate = False
     bot_logger.addHandler(console_handler)
     bot_logger.addHandler(standard_handler)
 
     plugin_logger = logging.getLogger("plugin")
+    plugin_logger.propagate = False
     plugin_logger.addHandler(console_handler)
     plugin_logger.addHandler(standard_handler)
 
     database_logger = logging.getLogger("database")
+    database_logger.propagate = False
     database_logger.addHandler(console_handler)
     database_logger.addHandler(standard_handler)
 
     bot_logger.info("MassdropBot Logger initialized.")
+    logging.getLogger("requests").setLevel(logging.WARNING)
 
     offset, tzname = local_time_offset()
     if offset >= 0:
