@@ -13,7 +13,7 @@ class SmallSubBot(Base):
         self.DESCRIPTION = self.config.get(self.BOT_NAME, 'description')
         self.USERNAME = self.config.get(self.BOT_NAME, 'username')
         self.OAUTH_FILENAME = self.config.get(self.BOT_NAME, 'oauth')
-        self.REGEX = re.compile(r"\s(/?[rR]/[A-Za-z0-9][^\s\].,)]*)")
+        self.REGEX = re.compile(r"\s/?[rR]/([A-Za-z0-9]*)[^\s\].,)]*")
         self.DESCRIPTION_REGEX = re.compile(r"(\[).*?(\]\(.*?\))|(\\n)|(#)")  # Helps escaping shitty reddit markdown
         self.session, self.oauth = self.factory_reddit(config_file=dirname(__file__)+"/../config/"+self.OAUTH_FILENAME)
         self.responses = SmallSubText(dirname(__file__) + "/../config/bot_config.ini")
@@ -24,11 +24,15 @@ class SmallSubBot(Base):
         pass
 
     def execute_submission(self, submission):
+        results = self.REGEX.findall(" " + submission.title)
         if any(bans in submission.title.lower() for bans in self.banwords): return False
+        if any(result in submission.selftext.lower() for result in results): return False
         return self.general_action(submission)
 
     def execute_link(self, link_submission):
         if any(bans in link_submission.title.lower() for bans in self.banwords): return False
+        results = self.REGEX.findall(" " + link_submission.title)
+        if any(result.lower() in link_submission.url.lower() for result in results): return False
         return self.general_action(link_submission)
 
     def execute_titlepost(self, title_only):
@@ -59,7 +63,7 @@ class SmallSubBot(Base):
         subreddit_infos = []
         textbody = ""
         for subreddit in subreddits:
-            sub_name = subreddit.split('r/')[-1].lower()
+            sub_name = subreddit
             if sub_name == source_subreddit_name.lower():
                 continue
 
@@ -69,9 +73,9 @@ class SmallSubBot(Base):
                     already_found = True
                     break
             if already_found: continue
-
+            self.logger.debug("Target Subreddit to check: {}".format(sub_name))
             target = self.session.get_subreddit(sub_name)
-            if target.subscribers and target.subscribers < 10**5:
+            if hasattr(target, 'subscribers') and target.subscribers < 10**5:
                 description = self.DESCRIPTION_REGEX.sub('', target.description)
                 description = self.description_formatter(description, target.over18)
                 subreddit_infos.append({'subreddit': sub_name, 'description': description})
