@@ -104,33 +104,37 @@ class MassdropBot:
 
     def submission_thread(self):
         self.logger.info("Opened submission stream successfully.")
-        for submission in self.submissions:
+        for subm in self.submissions:
             for responder in self.responders:
                 self.lock.acquire(True)
                 # Check beforehand if a subreddit or a user is banned from the bot / globally.
-                if self.database.check_if_subreddit_is_banned(submission.subreddit.display_name, responder.BOT_NAME) \
-                   and self.database.check_if_user_is_banned(submission.author.name, responder.BOT_NAME): continue
-
-                if not self.database.get_thing_from_storage(submission.id, responder.BOT_NAME):
+                # Also using "fullname" or any other sort of ID ends in an API-call (which is too slow).
+                if (hasattr(subm, 'name') and
+                    not self.database.get_thing_from_storage(subm.name, responder.BOT_NAME)) and \
+                    ((hasattr(subm.author, 'name') and
+                      not self.database.check_if_user_is_banned(subm.author.name, responder.BOT_NAME)) or
+                     (hasattr(subm.subreddit, 'display_name') and
+                      not self.database.check_if_subreddit_is_banned(subm.subreddit.display_name, responder.BOT_NAME))):
                     try:
-                        if submission.is_self and submission.selftext:
-                            responded = responder.execute_submission(submission)
-                        elif submission.is_self:
-                            responded = responder.execute_titlepost(submission)
+                        if subm.is_self and subm.selftext:
+                            responded = responder.execute_submission(subm)
+                        elif subm.is_self:
+                            responded = responder.execute_titlepost(subm)
                         else:
-                            responded = responder.execute_link(submission)
+                            responded = responder.execute_link(subm)
 
                         # a responder should return with true of false, so we can manage the database for it here.
                         # reminder: writing on multiple threads is bad, reading is always fine.
                         if responded:
-                            self.database.insert_into_storage(submission.name, responder.BOT_NAME)
+                            self.database.insert_into_storage(subm.name, responder.BOT_NAME)
 
                     except Forbidden:
-                        name = submission.subreddit.display_name
+                        name = subm.subreddit.display_name
                         self.database.add_subreddit_ban_per_module(name,
                                                                    responder.BOT_NAME)
-                        self.logger.error("It seems like this bot is banned in '{}'. The bot will ban the subreddit now"
-                                          " from the module to escape it automatically.".format(name))
+                        self.logger.error("It seems like {} is banned in '{}'. The bot will ban the subreddit now"
+                                          " from the module to escape it automatically.".format(responder.BOT_NAME,
+                                                                                                name))
                     except NotFound:
                         pass
                     except Exception as e:
@@ -145,16 +149,18 @@ class MassdropBot:
             for responder in self.responders:
                 self.lock.acquire(True)
                 # Check beforehand if a subreddit or a user is banned from the bot / globally.
-                if self.database.check_if_subreddit_is_banned(comment.subreddit._case_name, responder.BOT_NAME) and \
-                    self.database.check_if_user_is_banned(comment.author.name, responder.BOT_NAME): continue
-
-                if not self.database.get_thing_from_storage(comment.name, responder.BOT_NAME):
+                if (hasattr(comment, 'name') and
+                    not self.database.get_thing_from_storage(comment.name, responder.BOT_NAME)) and \
+                    ((hasattr(comment.author, 'name') and
+                      not self.database.check_if_user_is_banned(comment.author.name, responder.BOT_NAME)) or
+                     (hasattr(comment.subreddit, 'display_name') and
+                      not self.database.check_if_subreddit_is_banned(comment.subreddit.display_name, responder.BOT_NAME))):
                     try:
                         if responder.execute_comment(comment):
                             self.database.insert_into_storage(comment.name, responder.BOT_NAME)
 
                     except Forbidden:
-                        name = comment.subreddit.display_name
+                        name = comment.subreddit.name
                         self.database.add_subreddit_ban_per_module(name,
                                                                    responder.BOT_NAME)
                         self.logger.error("It seems like this bot is banned in '{}'. The bot will ban the subreddit now"

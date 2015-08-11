@@ -26,7 +26,7 @@ class MultiThreader(object):
                 t.join(5)
 
     def get_lock(self):
-        return threading.RLock()
+        return threading.RLock(True)
 
     @staticmethod
     def repeater(thread):
