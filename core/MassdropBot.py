@@ -112,7 +112,7 @@ class MassdropBot:
                 if (hasattr(subm, 'name') and
                     not self.database.get_thing_from_storage(subm.name, responder.BOT_NAME)) and \
                     ((hasattr(subm.author, 'name') and
-                      not self.database.check_if_user_is_banned(subm.author.name, responder.BOT_NAME)) or
+                      not self.database.check_if_user_is_banned(subm.author.name, responder.BOT_NAME)) and
                      (hasattr(subm.subreddit, 'display_name') and
                       not self.database.check_if_subreddit_is_banned(subm.subreddit.display_name, responder.BOT_NAME))):
                     try:
@@ -137,6 +137,13 @@ class MassdropBot:
                                                                                                 name))
                     except NotFound:
                         pass
+                    except praw.errors.APIException as e:
+                        if e.error_type == 'DELETED_LINK':
+                            self.logger.debug('{} tried to comment on an already deleted resource - ignored.'.format(
+                                responder.BOT_NAME))
+                            pass
+                        else:
+                            raise e
                     except Exception as e:
                         import traceback
                         self.logger.error(traceback.print_exc())
@@ -152,7 +159,7 @@ class MassdropBot:
                 if (hasattr(comment, 'name') and
                     not self.database.get_thing_from_storage(comment.name, responder.BOT_NAME)) and \
                     ((hasattr(comment.author, 'name') and
-                      not self.database.check_if_user_is_banned(comment.author.name, responder.BOT_NAME)) or
+                      not self.database.check_if_user_is_banned(comment.author.name, responder.BOT_NAME)) and
                      (hasattr(comment.subreddit, 'display_name') and
                       not self.database.check_if_subreddit_is_banned(comment.subreddit.display_name, responder.BOT_NAME))):
                     try:
@@ -160,13 +167,21 @@ class MassdropBot:
                             self.database.insert_into_storage(comment.name, responder.BOT_NAME)
 
                     except Forbidden:
-                        name = comment.subreddit.name
+                        name = comment.subreddit.display_name
                         self.database.add_subreddit_ban_per_module(name,
                                                                    responder.BOT_NAME)
-                        self.logger.error("It seems like this bot is banned in '{}'. The bot will ban the subreddit now"
-                                          " from the module to escape it automatically.".format(name))
+                        self.logger.error("It seems like {} is banned in '{}'. The bot will ban the subreddit now"
+                                          " from the module to escape it automatically.".format(responder.BOT_NAME,
+                                                                                                name))
                     except NotFound:
                         pass
+                    except praw.errors.APIException as e:
+                        if e.error_type == 'DELETED_LINK':
+                            self.logger.debug('{} tried to comment on an already deleted resource - ignored.'.format(
+                                responder.BOT_NAME))
+                            pass
+                        else:
+                            raise e
                     except Exception as e:
                         import traceback
                         self.logger.error(traceback.print_exc())
