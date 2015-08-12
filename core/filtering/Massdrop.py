@@ -92,8 +92,8 @@ class Massdrop(Base):
                 continue
             if not from_update:
                 fix_url = fix_url + ('?', '&')['?' in url] + 'mode=guest_open'
+                self.logger.debug('Trying to open {} .'.format(fix_url))
             try:
-                pass
                 bs = BeautifulSoup(urlopen(fix_url), "html.parser")
                 # There is only one H1 - the product name - which is handy.
                 product_name = bs.find('h1').string
