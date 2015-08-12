@@ -352,11 +352,3 @@ if __name__ == "__main__":
 #   print(db.get_all_userbans())
 #   db.remove_userban_globally(user)
 #   print(db.get_all_userbans())
-
-
-
-
-
-
-
-
