@@ -1,6 +1,7 @@
 from core.BaseClass import Base
 from os.path import dirname
 from configparser import ConfigParser
+from praw.errors import InvalidSubreddit
 import re
 
 
@@ -26,7 +27,7 @@ class SmallSubBot(Base):
     def execute_submission(self, submission):
         results = self.REGEX.findall(" " + submission.title)
         if any(bans in submission.title.lower() for bans in self.banwords): return False
-        if any(result in submission.selftext.lower() for result in results): return False
+        if any(result.lower() in submission.selftext.lower() for result in results): return False
         return self.general_action(submission)
 
     def execute_link(self, link_submission):
@@ -64,7 +65,7 @@ class SmallSubBot(Base):
         textbody = ""
         for subreddit in subreddits:
             sub_name = subreddit
-            if sub_name == source_subreddit_name.lower():
+            if sub_name.lower() == source_subreddit_name.lower() or len(sub_name) <= 3:
                 continue
 
             already_found = False
@@ -73,13 +74,14 @@ class SmallSubBot(Base):
                     already_found = True
                     break
             if already_found: continue
-            self.logger.debug("Target Subreddit to check: {}".format(sub_name))
-            target = self.session.get_subreddit(sub_name)
-            if hasattr(target, 'subscribers') and target.subscribers < 10**5:
-                description = self.DESCRIPTION_REGEX.sub('', target.description)
-                description = self.description_formatter(description, target.over18)
-                subreddit_infos.append({'subreddit': sub_name, 'description': description})
-
+            try:
+                target = self.session.get_subreddit(sub_name)
+                if hasattr(target, 'subscribers') and target.subscribers < 10**5:
+                    description = self.DESCRIPTION_REGEX.sub('', target.description)
+                    description = self.description_formatter(description, target.over18)
+                    subreddit_infos.append({'subreddit': sub_name, 'description': description})
+            except InvalidSubreddit:
+                return
         if len(subreddit_infos) == 0: return
         for sub in subreddit_infos:
             textbody += self.responses.subreddit_binding.format(**sub)
