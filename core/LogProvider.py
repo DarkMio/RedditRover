@@ -29,7 +29,6 @@ def setup_logging(log_level="INFO", console_log_level=None):
        This logging handler is quite powerful and nicely formatted."""
     null_handler = logging.NullHandler()
     logging.basicConfig(level=log_level, handlers=[null_handler])
-    # logging.basicConfig(level=log_level)
 
     if console_log_level is None:
         console_log_level = log_level
