@@ -6,9 +6,9 @@ In case you're interested in writing reddit bots and like to see how different b
 
 ## Progress
 
-![Feature Complete](http://progressed.io/bar/95?title=Feature%20Complete)
+![Feature Complete](http://progressed.io/bar/100?title=Feature%20Complete)
 ![Database Provider](http://progressed.io/bar/100?title=Database%20Provider)
-![Framework](http://progressed.io/bar/95?title=Framework)
+![Framework](http://progressed.io/bar/100?title=Framework)
 ![Threading](http://progressed.io/bar/100?title=Threading)
 ![Modules](http://progressed.io/bar/90?title=Modules)
 
@@ -17,11 +17,8 @@ Running on Python 3:
 
     pip install praw --upgrade
     pip install praw-oauth2util
-    # For the massdrop plugin - which you should not use anyway:
-    # pip install beautifulsoup4
     
-All other dependencies are from
-
+All other dependencies are standard builtins.
 
 ## Debugging
 Bot features are written in Abstract Base Classes. Inherit them properly and then test them extensively with strings.
@@ -41,16 +38,12 @@ v0.1: Initial Commit
 
 ## Planned features & work in progress
 - Debugger-Features and startup commands.
-- Ban Lists (for subreddits and users!) :ok_hand:
-- Multi Login (configparser already reads logins somehow, maybe needs better grouping.) :ok_hand:
-- Maybe a nitpicky answer module
-- SmallSubBot generates Set of subreddits (eliminates the possibility of a subreddit being called twice)
+- Refactoring some methods, especially inside the DatabaseProvider.
+- Rewriting some chunks of the Massdrop-Plugin, it's nesting and seperation of concerns is horrible currently.
 
 ##### Planned Massdrop Features
-- After reading Massdrop links wait some time before responding (LIFO queue)
-- Price History (min/max/current?) :ok_hand:
-- End date of current drop :ok_hand:
 - Unit Order Limit
+- Mapping Massdrops new JSON-website into an object - it's actually like an API with some html-trash now.
 
 ## Help, questions, contribution
 Feel free to mail me, even here on GitHub.
