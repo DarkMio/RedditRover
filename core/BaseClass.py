@@ -5,6 +5,7 @@ from praw import handlers
 from OAuth2Util import OAuth2Util
 from os import path
 from configparser import ConfigParser
+import re
 
 
 class Base(metaclass=ABCMeta):
@@ -21,6 +22,7 @@ class Base(metaclass=ABCMeta):
     def __init__(self, database):
         self.factory_logger()
         self.database = database
+        self.RE_BANMSG = re.compile(r'ban /([r|u])/([\d\w_]*)', re.UNICODE)
 
     def integrity_check(self):
         assert self.USERNAME and self.OAUTH_FILENAME and self.DESCRIPTION, \
@@ -40,6 +42,39 @@ class Base(metaclass=ABCMeta):
         self.config = ConfigParser()
         self.config.read(path.dirname(__file__) + "/config/bot_config.ini")
 
+    def get_unread_messages(self):
+        if hasattr(self, "session"):
+            msgs = self.session.get_unread()
+            for msg in msgs:
+                msg.mark_as_read()
+                self.on_new_message(msg)
+        return
+
+    def standard_ban_procedure(self, message, subreddit_banning_allowed=True, user_banning_allowed=True):
+        if message.author:
+            author, human = message.author.name.lower(), True
+        else:
+            author, human = message.subreddit.display_name.lower(), False
+        if not message.was_comment and author in message.body.lower():
+            sub, result = self.RE_BANMSG.search(message.body).groups()
+            # check if a user wants to ban a user or a sub wants to ban a sub.
+            type_consistency = (sub.lower() == 'r' and not human) or (sub.lower() == 'u' and human)
+            if author == result.lower() and type_consistency:
+                if human and user_banning_allowed:
+                    at, bn = message.author.name, self.BOT_NAME
+                    self.database.add_userban_per_module(at, bn)
+                    message.reply("Successfully banned /u/{} from {}. "
+                                  "The bot should ignore you from now on.\n\n"
+                                  "Have a nice day!".format(at, bn))
+                    self.logger.info("Banned /u/{} from {} on message request.".format(at, bn))
+                elif subreddit_banning_allowed:
+                    sb, bn = message.subreddit.display_name, self.BOT_NAME
+                    self.database.add_subreddit_ban_per_module(sb, bn)
+                    message.reply("Successfully banned /r/{} from {}. "
+                                  "The bot should ignore this subreddit from now on."
+                                  "\n\nHave a nice day!".format(sb, bn))
+                    self.logger.info("Banned /r/{} from {} on message request".format(sb, bn))
+
     @abstractmethod
     def execute_submission(self, submission):
         pass
@@ -58,4 +93,8 @@ class Base(metaclass=ABCMeta):
 
     @abstractmethod
     def update_procedure(self, thing_id, created, lifetime, last_updated, interval):
+        pass
+
+    @abstractmethod
+    def on_new_message(self, message):
         pass

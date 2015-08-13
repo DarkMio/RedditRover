@@ -206,10 +206,10 @@ class MassdropBot:
                             responder.update_procedure(**thread_dict)
                         except Exception as e:
                             self.logger.error("{} error: {}".format(responder.BOT_NAME, e, e.__traceback__))
+                responder.get_unread_messages()
 
             self.database.clean_up_database(int(time()) - int(self.delete_after))
             self.lock.release()
-
             # after working through all update threads, sleep for five minutes. #saveresources
             sleep(360)
 

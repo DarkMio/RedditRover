@@ -43,6 +43,9 @@ class SmallSubBot(Base):
     def update_procedure(self, thing_id, created, lifetime, last_updated, interval):
         pass
 
+    def on_new_message(self, message):
+        self.standard_ban_procedure(message)
+
     def execute_textbody(self, textbody):
         self.oauth.refresh()
         result = self.REGEX.findall(" " + textbody)
@@ -92,7 +95,7 @@ class SmallSubBot(Base):
     @staticmethod
     def description_formatter(description, over18):
         """Formats a subreddit description"""
-        nsfw = ('', '[**NSFW**]')[over18]
+        nsfw = ('', '[**NSFW**] ')[over18]
         # get the first line of their description
         for chars in description:
             if chars.isspace(): description = description[1:]
@@ -106,7 +109,7 @@ class SmallSubBot(Base):
 
         if len(description) > 250:
             description = description[:250] + ' [...]'
-        return description
+        return nsfw + description
 
 
 class SmallSubText:

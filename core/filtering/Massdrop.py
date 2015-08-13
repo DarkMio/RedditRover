@@ -9,6 +9,7 @@ from json import loads as json_loads
 import re
 from json import loads
 from praw.objects import Comment
+from misc.mutliple_strings import multiple_of
 
 
 class Massdrop(Base):
@@ -79,9 +80,12 @@ class Massdrop(Base):
         if isinstance(comment, Comment):
             url = self.REGEX.findall(comment.body)
             if url:
-                response = self.generate_response(url, from_update=True)
+                response, time_left = self.generate_response(url, from_update=True)
                 comment.edit(response)
                 return
+
+    def on_new_message(self, message):
+        self.standard_ban_procedure(message)
 
     def execute_textbody(self, string):
         url = self.REGEX.findall(string)
@@ -131,7 +135,7 @@ class Massdrop(Base):
                 self.logger.error("Oh noes, an unexpected error happened:", e)
 
         if len(drop_field) == 0:
-            return
+            return None, None
 
         # item is a dictionary that fits on the right binding - saves time, is short
         for item in drop_field:
@@ -147,8 +151,10 @@ class Massdrop(Base):
     @staticmethod
     def time_formatter(time_left):
         if time_left.days > 0:
-            return "{} days left".format(time_left.days)
-        return "{] hours left".format(time_left.seconds//3600)
+            days = time_left.days
+            return "{} {} left".format(days, multiple_of(days, "day", "days"))
+        hours = time_left//3600
+        return "{} {} left".format(hours, multiple_of(hours, "hour", "hours"))
 
 
 class MassdropText:
@@ -198,6 +204,6 @@ if __name__ == "__main__":
     db = DatabaseProvider()
     md = Massdrop(db)
 
-    print(md.execute_textbody('https://www.massdrop.com/buy/goboof-alfa https://www.massdrop.com/buy/arizer-extremeq'))
+    print(md.execute_textbody('https://www.massdrop.com/buy/creative-aurvana-live-2'))
 
     # print(md.update_procedure("t1_ctv1673", 0, 0, 0, 0))
