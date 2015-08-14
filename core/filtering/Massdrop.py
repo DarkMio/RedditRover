@@ -153,7 +153,7 @@ class Massdrop(Base):
         if time_left.days > 0:
             days = time_left.days
             return "{} {} left".format(days, multiple_of(days, "day", "days"))
-        hours = time_left//3600
+        hours = time_left.seconds//3600
         return "{} {} left".format(hours, multiple_of(hours, "hour", "hours"))
 
 
