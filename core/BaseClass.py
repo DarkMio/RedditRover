@@ -44,6 +44,7 @@ class Base(metaclass=ABCMeta):
 
     def get_unread_messages(self):
         if hasattr(self, "session"):
+            self.oauth.refresh()
             msgs = self.session.get_unread()
             for msg in msgs:
                 msg.mark_as_read()
@@ -56,7 +57,11 @@ class Base(metaclass=ABCMeta):
         else:
             author, human = message.subreddit.display_name.lower(), False
         if not message.was_comment and author in message.body.lower():
-            sub, result = self.RE_BANMSG.search(message.body).groups()
+            regex_result = self.RE_BANMSG.search(message.body)
+            if regex_result:
+                sub, result = self.RE_BANMSG.search(message.body).groups()
+            else:
+                return
             # check if a user wants to ban a user or a sub wants to ban a sub.
             type_consistency = (sub.lower() == 'r' and not human) or (sub.lower() == 'u' and human)
             if author == result.lower() and type_consistency:
