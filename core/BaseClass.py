@@ -156,6 +156,22 @@ class Base(metaclass=ABCMeta):
         """Use this method to test your bot manually on a single comment."""
         self.__test_single_thing("t1_{}".format(comment_id))
 
+    def to_update(self, response_object, lifetime):
+        """This method is preferred if you want a submission or comment to be updated.
+
+            :param response_object: PRAW returns on a posted submission or comment the resulting object.
+            :type response_object: praw.objects.Submission or praw.objects.Comment
+            :param lifetime: The exact moment in unixtime utc+0 when this object will be invalid (update cycle)
+            :type lifetime: unixtime in seconds
+        """
+        if not self.database:
+            self.logger.error('{} does not have a valid database connection.'.format(self.BOT_NAME))
+        else:
+            if isinstance(response_object, praw.objects.Submission) or isinstance(praw.objects.Comment):
+                self.database.insert_into_update(response_object.fullname, self.BOT_NAME, lifetime)
+            else:
+                self.logger.error('response_object has an invalid object type.')
+
     @abstractmethod
     def execute_submission(self, submission):
         pass
