@@ -24,6 +24,7 @@ Contents:
 
    pages/writing_a_plugin
    pages/baseclass
+   pages/bot_config.ini
    pages/core
    pages/plugins
    pages/misc
