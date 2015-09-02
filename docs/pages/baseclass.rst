@@ -78,9 +78,6 @@ There are two types of builtin methods: Vital framework methods or testing featu
 methods for easy plugin programming, i. e. methods for storing submissions you want to update or a simple bot banning
 feature (to ignore users and subreddits consistently).
 
-Framework and Service
-+++++++++++++++++++++
-
 .. py:function:: integrity_check(self)
 
     Checks the integrity of said plugin based on standard parameter. It gets called after object initialization and
@@ -143,33 +140,42 @@ Framework and Service
 Object Attributes
 -----------------
 
-.. py:attribute:: DESCRIPTION
+There are certain attributes you could overwrite as you please. Otherwise setting them up with the presented tools is
+recommended.
 
+.. py:attribute:: DESCRIPTION
     Reddit user agent: describes the bot / function / author
 
-
 .. py:attribute:: USERNAME
-
     reddit username which should be logged in - checked on integrity check if it is the same than what the OAuth
     credentials log in with.
 
-
 .. py:attribute:: OAUTH_FILENAME
-
     login credentials path for praw-OAuth2Util
 
+.. py:attribute:: BOT_NAME
+    Give the bot a nice name.
 
-.. py:attribute:: REGEX
+.. py:attribute:: IS_LOGGED_IN
+    Mandatory bool if this bot features a logged in session
 
-    most basic regex string - pre-filters incoming threads
-    BOT_NAME = None     # Give the bot a nice name.
-    IS_LOGGED_IN = False  # Mandatory bool if this bot features a logged in session
-    SELF_IGNORE = True  # Bool if the bot should not react on his own submissions / comments.
-    session = None      # a full session with login into reddit.
-    oauth = None        # praw-OAuth2Util
-    logger = None       # logger for specific module
-    config = None       # Could be used for ConfigParser - there is a method for that.
-    database = None     # Session to database.
+.. py:attribute:: SELF_IGNORE
+    Bool if the bot should not react on his own submissions / comments.
+
+.. py:attribute:: session
+    a full session with login into reddit.
+
+.. py:attribute:: oauth
+    praw-OAuth2Util
+
+.. py:attribute:: logger
+    logger for specific module
+
+.. py:attribute:: config
+    Could be used for ConfigParser - there is a method for that.
+
+.. py:attribute:: database
+    Session to database.
 
 
 

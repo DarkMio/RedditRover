@@ -13,7 +13,6 @@ class Base(metaclass=ABCMeta):
     DESCRIPTION = None  # user_agent: describes the bot / function / author
     USERNAME = None     # reddit username
     OAUTH_FILENAME = None  # password of reddit username
-    REGEX = None        # most basic regex string - pre-filters incoming threads
     BOT_NAME = None     # Give the bot a nice name.
     IS_LOGGED_IN = False  # Mandatory bool if this bot features a logged in session
     SELF_IGNORE = True  # Bool if the bot should not react on his own submissions / comments.
