@@ -144,49 +144,46 @@ There are certain attributes you could overwrite as you please. Otherwise settin
 recommended.
 
 .. py:attribute:: DESCRIPTION
+
     Reddit user agent: describes the bot / function / author
 
 .. py:attribute:: USERNAME
+
     reddit username which should be logged in - checked on integrity check if it is the same than what the OAuth
     credentials log in with.
 
 .. py:attribute:: OAUTH_FILENAME
+
     login credentials path for praw-OAuth2Util
 
 .. py:attribute:: BOT_NAME
+
     Give the bot a nice name.
 
 .. py:attribute:: IS_LOGGED_IN
+
     Mandatory bool if this bot features a logged in session
 
 .. py:attribute:: SELF_IGNORE
+
     Bool if the bot should not react on his own submissions / comments.
 
 .. py:attribute:: session
+
     a full session with login into reddit.
 
 .. py:attribute:: oauth
+
     praw-OAuth2Util
 
 .. py:attribute:: logger
+
     logger for specific module
 
 .. py:attribute:: config
+
     Could be used for ConfigParser - there is a method for that.
 
 .. py:attribute:: database
+
     Session to database.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
