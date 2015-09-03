@@ -6,7 +6,7 @@ import re
 class LeafeatorBot(Base):
     def __init__(self, database):
         super().__init__(database, 'LeafeatorBot')
-        self.APPROVE = ['dota2circlejerk', 'dota2', 'dotamasterrace']
+        self.APPROVE = ['dota2circlejerk', 'dota2', 'dotamasterrace', 'dota2moddingtesting']
         self.RESPONSE = self.config.get('LeafeatorBot', 'response')
         self.REGEX = re.compile(
             r'(ancient(?!.*(apparition)).*necro(?!s)|necro.*ancient(?!.*(apparition))|leafeator-bot)',
@@ -29,13 +29,15 @@ class LeafeatorBot(Base):
 
     def general_action(self, body, thing, is_comment=False):
         if thing.author and 'leafeator' in thing.author.name.lower():
+            self.logger.info('Leafeator posted - ignoring')
             return False
 
-        if thing.subreddit.display_name.lower not in self.APPROVE:
+        if thing.subreddit.display_name.lower() not in self.APPROVE:
             return False
 
-        result = self.REGEX.search(body)
+        result = self.REGEX.findall(body)
         if result:
+            self.logger.info('I should post soon if not already answered.')
             if not is_comment:
                 thread_id = thing.name
             else:
@@ -65,9 +67,6 @@ if __name__ == '__main__':
     from core import LogProvider
     logger = LogProvider.setup_logging(log_level="DEBUG")
     db = DatabaseProvider()
-    r = Reddit(user_agent='Manual Testing')
-    subm = r.get_info(thing_id='t3_3ik036')
-    cmt = r.get_info(thing_id='t1_cuilwo5')
     lb = LeafeatorBot(db)
-    lb.execute_comment(cmt)
+    lb.test_single_comment('cuomou4')
     # lb.execute_submission(subm)
