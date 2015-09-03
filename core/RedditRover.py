@@ -26,7 +26,6 @@ class RedditRover:
     passwords = None  # Holds passwords within
     responders = None  # Keeps track of all responder objects
     multi_thread = None  # Reference to MultiThreader, which ... does the threading.
-    database = None  # Reference to the DatabaseProvider
     delete_after = None  # All activity older than x seconds will be cleaned from the database.
 
     praw_handler = None  # Will hold the handler to connect to the praw-multiprocess server.
@@ -40,7 +39,7 @@ class RedditRover:
         self.logger = LogProvider.setup_logging(log_level="DEBUG")
         self.read_config()
         self.multi_thread = MultiThreader()
-        self.database = DatabaseProvider()
+        self.database_update = DatabaseProvider()
         self.database_cmt = DatabaseProvider()
         self.database_subm = DatabaseProvider()
         try:
@@ -100,7 +99,7 @@ class RedditRover:
             module = __import__(modname, fromlist="dummy")
             # every sub module has to have an object provider,
             # this makes importing the object itself easy and predictable.
-            module_object = module.init(self.database)
+            module_object = module.init(DatabaseProvider())
             try:
                 if not isinstance(module_object, Base):
                     raise ImportError('Module {} does not inherit from Base class'.format(
@@ -108,7 +107,7 @@ class RedditRover:
                 # could / should fail due to variable validation
                 # (aka: is everything properly set to even function remotely.)
                 module_object.integrity_check()
-                self.database.register_module(module_object.BOT_NAME)
+                self.database_update.register_module(module_object.BOT_NAME)
                 self.logger.info('Module "{}" is initialized and ready.'.format(module_object.__class__.__name__))
             except AssertionError as e:
                 # Catches the error and skips the module. The import will now be reversed.
@@ -143,7 +142,6 @@ class RedditRover:
         self.logger.info("Opened comment stream successfully.")
         for comment in self.comments:
             self.comment_submission_action(comment)
-
 
     def comment_submission_action(self, thing):
         """Refactored to one big execution chain - smart enough to split comments and submissions apart."""
@@ -195,7 +193,7 @@ class RedditRover:
         while True:
             self.lock.acquire(True)
             for responder in self.responders:
-                threads = self.database_subm.get_all_to_update(responder.BOT_NAME)
+                threads = self.database_update.get_all_to_update(responder.BOT_NAME)
                 if threads:
                     for thread in threads:
                         # reformat the entry from the database, so we can feed it directly into the update_procedure
@@ -204,7 +202,7 @@ class RedditRover:
                                        'lifetime': strptime(thread[3], '%Y-%m-%d %H:%M:%S'),
                                        'last_updated': strptime(thread[4], '%Y-%m-%d %H:%M:%S'),
                                        'interval': thread[5]}
-                        self.database_subm.update_timestamp_in_update(thread_dict['thing_id'], responder.BOT_NAME)
+                        self.database_update.update_timestamp_in_update(thread_dict['thing_id'], responder.BOT_NAME)
                         try:
                             responder.update_procedure(**thread_dict)
                         except Exception as e:
@@ -214,7 +212,7 @@ class RedditRover:
                 except Exception as e:
                     self.logger.error(traceback.print_exc())
                     self.logger.error("{} error: {} < {}".format(responder.BOT_NAME, e.__class__.__name__, e))
-            self.database_subm.clean_up_database(int(time()) - int(self.delete_after))
+            self.database_update.clean_up_database(int(time()) - int(self.delete_after))
             self.lock.release()
             # after working through all update threads, sleep for five minutes. #saveresources
             sleep(360)
