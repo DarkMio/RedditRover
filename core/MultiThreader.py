@@ -32,7 +32,7 @@ class MultiThreader(object):
 
         :return: threading.RLock()
         """
-        return threading.RLock()
+        return threading.Lock()
 
     @staticmethod
     def repeater(thread):

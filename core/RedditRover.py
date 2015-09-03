@@ -41,6 +41,8 @@ class RedditRover:
         self.read_config()
         self.multi_thread = MultiThreader()
         self.database = DatabaseProvider()
+        self.database_cmt = DatabaseProvider()
+        self.database_subm = DatabaseProvider()
         try:
             self.load_responders()
             self.praw_handler = MultiprocessHandler()
@@ -63,18 +65,25 @@ class RedditRover:
         self.multi_thread.join_threads()
 
     def _filter_single_thing(self, thing, responder):
-        db, b_name = self.database, responder.BOT_NAME
-        if db.retrieve_thing(thing.name, b_name):
-            return False
-        if hasattr(thing, 'author') and type(thing.author) is praw.objects.Redditor:
-            if db.check_user_ban(thing.author.name, b_name):
+        try:
+            if isinstance(thing, praw.objects.Comment):
+                db = self.database_cmt
+            else:
+                db = self.database_subm
+            b_name = responder.BOT_NAME
+            if db.retrieve_thing(thing.name, b_name):
                 return False
-            if thing.author.name == responder.session.user.name:
-                # @TODO: Piece of config if the bot should ignore himself. Currently does so.
+            if hasattr(thing, 'author') and type(thing.author) is praw.objects.Redditor:
+                if db.check_user_ban(thing.author.name, b_name):
+                    return False
+                if thing.author.name == responder.session.user.name:
+                    # @TODO: Piece of config if the bot should ignore himself. Currently does so.
+                    return False
+            if hasattr(thing, 'subreddit') and db.check_subreddit_ban(thing.subreddit.display_name, b_name):
                 return False
-        if hasattr(thing, 'subreddit') and db.check_subreddit_ban(thing.subreddit.display_name, b_name):
+            return True
+        except:
             return False
-        return True
 
     def load_responders(self):
         """Main method to load sub-modules, which are designed as a framework for multiple bots.
@@ -127,7 +136,6 @@ class RedditRover:
         self.logger.info("Opened submission stream successfully.")
         for subm in self.submissions:
             self.comment_submission_action(subm)
-            sleep(1)
 
     def comment_thread(self):
         """The comment thread runs down all comments from the specified sub (usually /r/all)
@@ -135,17 +143,17 @@ class RedditRover:
         self.logger.info("Opened comment stream successfully.")
         for comment in self.comments:
             self.comment_submission_action(comment)
-            sleep(1)
+
 
     def comment_submission_action(self, thing):
         """Refactored to one big execution chain - smart enough to split comments and submissions apart."""
         for responder in self.responders:
-            self.lock.acquire(True)
+            # self.lock.acquire(True)
             # Check beforehand if a subreddit or a user is banned from the bot / globally.
             if self._filter_single_thing(thing, responder):
                 try:
                     if isinstance(thing, praw.objects.Submission) and thing.is_self and thing.selftext:
-                            responded = responder.execute_submission(thing)
+                        responded = responder.execute_submission(thing)
                     elif isinstance(thing, praw.objects.Submission) and thing.is_self:
                         responded = responder.execute_titlepost(thing)
                     elif isinstance(thing, praw.objects.Submission):
@@ -154,11 +162,14 @@ class RedditRover:
                         responded = responder.execute_comment(thing)
 
                     if responded:
-                            self.database.insert_into_storage(thing.name, responder.BOT_NAME)
+                        if isinstance(thing, praw.objects.Comment):
+                            self.database_cmt.insert_into_storage(thing.name, responder.BOT_NAME)
+                        else:
+                            self.database_subm.insert_into_storage(thing.name, responder.BOT_NAME)
 
                 except Forbidden:
                     name = thing.subreddit.display_name
-                    self.database.add_subreddit_ban_per_module(name,
+                    self.database_subm.add_subreddit_ban_per_module(name,
                                                                responder.BOT_NAME)
                     self.logger.error("It seems like {} is banned in '{}'. The bot will ban the subreddit now"
                                       " from the module to escape it automatically.".format(responder.BOT_NAME,
@@ -174,7 +185,8 @@ class RedditRover:
                 except Exception as e:
                     self.logger.error(traceback.print_exc())
                     self.logger.error("{} error: {} < {}".format(responder.BOT_NAME, e.__class__.__name__, e))
-            self.lock.release()
+                # self.lock.release()
+        # sleep(0.0012)
 
     def update_thread(self):
         """The update-thread does a lot of different tasks.
@@ -183,7 +195,7 @@ class RedditRover:
         while True:
             self.lock.acquire(True)
             for responder in self.responders:
-                threads = self.database.get_all_to_update(responder.BOT_NAME)
+                threads = self.database_subm.get_all_to_update(responder.BOT_NAME)
                 if threads:
                     for thread in threads:
                         # reformat the entry from the database, so we can feed it directly into the update_procedure
@@ -192,7 +204,7 @@ class RedditRover:
                                        'lifetime': strptime(thread[3], '%Y-%m-%d %H:%M:%S'),
                                        'last_updated': strptime(thread[4], '%Y-%m-%d %H:%M:%S'),
                                        'interval': thread[5]}
-                        self.database.update_timestamp_in_update(thread_dict['thing_id'], responder.BOT_NAME)
+                        self.database_subm.update_timestamp_in_update(thread_dict['thing_id'], responder.BOT_NAME)
                         try:
                             responder.update_procedure(**thread_dict)
                         except Exception as e:
@@ -202,7 +214,7 @@ class RedditRover:
                 except Exception as e:
                     self.logger.error(traceback.print_exc())
                     self.logger.error("{} error: {} < {}".format(responder.BOT_NAME, e.__class__.__name__, e))
-            self.database.clean_up_database(int(time()) - int(self.delete_after))
+            self.database_subm.clean_up_database(int(time()) - int(self.delete_after))
             self.lock.release()
             # after working through all update threads, sleep for five minutes. #saveresources
             sleep(360)
@@ -222,4 +234,4 @@ class RedditRover:
         self.logger.info("Configuration read and set up properly.")
 
 if __name__ == "__main__":
-    mb = MassdropBot()
+    mb = RedditRover()

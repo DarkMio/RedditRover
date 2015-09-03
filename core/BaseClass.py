@@ -87,10 +87,13 @@ class Base(metaclass=ABCMeta):
         """Runs down all unread messages of a Reddit session."""
         if hasattr(self, "session"):
             self.oauth.refresh()
-            msgs = self.session.get_unread()
-            for msg in msgs:
-                msg.mark_as_read()
-                self.on_new_message(msg)
+            try:
+                msgs = self.session.get_unread()
+                for msg in msgs:
+                    msg.mark_as_read()
+                    self.on_new_message(msg)
+            except AssertionError:
+                pass
 
     def standard_ban_procedure(self, message, subreddit_banning_allowed=True, user_banning_allowed=True):
         """An exemplary method that bans users and subs and then replies them that the bot has banned.
@@ -136,7 +139,7 @@ class Base(metaclass=ABCMeta):
         """If you're used to reddit thing ids, you can use this method directly.
            However, if that is not the case, use test_single_submission and test_single_comment."""
         r = praw.Reddit(user_agent='Bot Framework Test for a single submission.')
-        thing = r.get_info(submission_id=thing_id)
+        thing = r.get_info(thing_id=thing_id)
         if type(thing) is praw.objects.Submission:
             if thing.is_self and thing.selftext:
                 self.execute_submission(thing)
