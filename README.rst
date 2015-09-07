@@ -50,16 +50,17 @@ Version & Changelog
 -------------------
 This bot is now again under development. Way less complex code, more segmentation and more single responsibility principle.
 
-``
-v0.7: No more praw-OAuth2Util, strengthening the framework, resolving major issues
---------------------------------------------------------------------------------------------------------------
-v0.6: Recode of the bot. A trillion of new features, which I will document soon™
-v0.5: Added more bots - and then it kept fucking up.
-v0.4: Should now load infinite amounts of links, represent them with the website title and respond accordingly.
-v0.3: Fixing behaviour with non-escaped chars in links and stopping the self-spam.
-v0.2: Methods to query with referrer-link and stuff like that
-v0.1: Initial Commit
-``
+.. code-block:: html
+
+    v0.7: No more praw-OAuth2Util, strengthening the framework, resolving major issues
+    --------------------------------------------------------------------------------------------------------------
+    v0.6: Recode of the bot. A trillion of new features, which I will document soon™
+    v0.5: Added more bots - and then it kept fucking up.
+    v0.4: Should now load infinite amounts of links, represent them with the website title and respond accordingly.
+    v0.3: Fixing behaviour with non-escaped chars in links and stopping the self-spam.
+    v0.2: Methods to query with referrer-link and stuff like that
+    v0.1: Initial Commit
+
 
 .. begin_future
 
