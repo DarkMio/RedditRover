@@ -75,8 +75,8 @@ class RedditRover:
             if hasattr(thing, 'author') and type(thing.author) is praw.objects.Redditor:
                 if db.check_user_ban(thing.author.name, b_name):
                     return False
-                if thing.author.name == responder.session.user.name:
-                    # @TODO: Piece of config if the bot should ignore himself. Currently does so.
+                if thing.author.name == responder.session.user.name and hasattr(responder, 'SELF_IGNORE') and \
+                        responder.SELF_IGNORE:
                     return False
             if hasattr(thing, 'subreddit') and db.check_subreddit_ban(thing.subreddit.display_name, b_name):
                 return False
@@ -109,8 +109,9 @@ class RedditRover:
                 module_object.integrity_check()
                 self.database_update.register_module(module_object.BOT_NAME)
                 self.logger.info('Module "{}" is initialized and ready.'.format(module_object.__class__.__name__))
-            except AssertionError as e:
-                # Catches the error and skips the module. The import will now be reversed.
+            except Exception as e:
+                # Catches _every_ error and skips the module. The import will now be reversed.
+                self.logger.error(traceback.print_exc())
                 self.logger.error("{}: {}".format(module_object.__class__.__name__, e))
                 del module, module_object
                 continue
