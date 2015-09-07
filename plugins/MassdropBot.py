@@ -30,7 +30,7 @@ class Massdrop(Base):
     def submission_action(self, thing_content, target):
         response, time_ends_in = self.general_action(thing_content)
         if response:
-            self.oauth.refresh()
+            self.oa_refresh()
             generated = self.session._add_comment(target, response)
             if time_ends_in:
                 self.database.insert_into_update(generated.name, self.BOT_NAME, time_ends_in.seconds + 13 * 3600, 43200)
@@ -41,7 +41,7 @@ class Massdrop(Base):
         pass
 
     def update_procedure(self, thing_id, created, lifetime, last_updated, interval):
-        self.oauth.refresh()
+        self.oa_refresh()
         comment = self.session.get_info(thing_id=thing_id)
         if comment.score < -5:
             comment.delete()
@@ -167,7 +167,9 @@ def init(database):
     return Massdrop(database)
 
 if __name__ == "__main__":
+    from core import LogProvider
     from core.DatabaseProvider import DatabaseProvider
+    logger = LogProvider.setup_logging()
     mt = MassdropText("bot_config.ini")
     print(mt)
     db = DatabaseProvider()

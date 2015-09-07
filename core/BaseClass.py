@@ -3,10 +3,11 @@ from abc import ABCMeta, abstractmethod
 import logging
 import praw
 from praw import handlers
-from OAuth2Util import OAuth2Util
 from pkg_resources import resource_filename
 from configparser import ConfigParser
 import re
+from time import time
+from praw.errors import HTTPException
 
 
 class Base(metaclass=ABCMeta):
@@ -16,8 +17,13 @@ class Base(metaclass=ABCMeta):
     BOT_NAME = None     # Give the bot a nice name.
     IS_LOGGED_IN = False  # Mandatory bool if this bot features a logged in session
     SELF_IGNORE = True  # Bool if the bot should not react on his own submissions / comments.
+    OA_ACCESS_TOKEN = None  # Access Token
+    OA_REFRESH_TOKEN = None  # OAuth Refresh Token
+    OA_APP_KEY = None      # Key of OAuth App
+    OA_APP_SECRET = None   # App Secret of OAuth App - DO NOT SHARE
+    OA_TOKEN_DURATION = 3540  # Tokens are valid for 60min, this one is it for 59min.
+    oa_valid_until = None  # Timestamp how long the OA_APP_KEY is valid
     session = None      # a full session with login into reddit.
-    oauth = None        # praw-OAuth2Util
     logger = None       # logger for specific module
     config = None       # Could be used for ConfigParser - there is a method for that.
     database = None     # Session to database.
@@ -41,16 +47,14 @@ class Base(metaclass=ABCMeta):
             "Failed constant variable integrity check. Check your object and its initialization."
         if self.IS_LOGGED_IN:
             assert hasattr(self, 'USERNAME') and self.USERNAME \
-                and hasattr(self, 'session') and self.session \
-                and hasattr(self, 'oauth') and self.session, \
+                and hasattr(self, 'session') and self.session, \
                 "Plugin is declared to be logged in, yet the session info is missing."
             assert self.session.user.name.lower() == self.USERNAME.lower(), \
                 "This plugin is logged in with wrong credentials: \n" \
                 "is: {} - should be: {}".format(self.session.user.name, self.USERNAME)
         else:
             assert hasattr(self, 'USERNAME') and self.USERNAME is False and \
-                hasattr(self, 'session') and self.session is False and \
-                hasattr(self, 'oauth') and self.session is False, \
+                hasattr(self, 'session') and self.session is False, \
                 "Plugin is declared to be not logged in, yet has a set of credentials."
         return True
 
@@ -58,15 +62,12 @@ class Base(metaclass=ABCMeta):
         """Sets up a logger for the plugin."""
         self.logger = logging.getLogger("plugin")
 
-    def factory_reddit(self, config_path):
-        """Sets up a complete OAuth Reddit session
-
-        :param config_path: full / relative path to config file
-        :type config_path: str
-        """
-        multiprocess = handlers.MultiprocessHandler()
-        self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=multiprocess)
-        self.oauth = OAuth2Util(self.session, configfile=config_path)
+    def factory_reddit(self):
+        """Sets up a complete OAuth Reddit session"""
+        self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=handlers.MultiprocessHandler())
+        self.session.set_oauth_app_info(self.OA_APP_KEY, self.OA_APP_SECRET,
+                                        'http://127.0.0.1:65010/authorize_callback')
+        self.oa_refresh(force=True)
 
     def factory_config(self):
         """Sets up a standard config-parser to bot_config.ini. Does not have to be used, but it is handy."""
@@ -77,16 +78,63 @@ class Base(metaclass=ABCMeta):
         get = lambda x: self.config.get(bot_name, x)
         self.DESCRIPTION = get('description')
         self.IS_LOGGED_IN = self.config.getboolean(bot_name, 'is_logged_in')
+        options = [option for option, value in self.config.items(bot_name)]
+        check_values = ('app_key', 'app_secret', 'self_ignore', 'username')
         if self.IS_LOGGED_IN:
-            self.SELF_IGNORE = self.config.getboolean(bot_name, 'self_ignore')
-            self.USERNAME = get('username')
-            self.OAUTH_FILENAME = get('oauth_file')
-            self.factory_reddit(config_path=resource_filename("config", self.OAUTH_FILENAME))
+            if all(value in options for value in check_values):  # check if important keys are in
+                self.SELF_IGNORE = self.config.getboolean(bot_name, 'self_ignore')
+                self.USERNAME = get('username')
+                self.OA_APP_KEY = get('app_key')
+                self.OA_APP_SECRET = get('app_secret')
+                if 'refresh_token' in options:
+                    self.OA_REFRESH_TOKEN = get('refresh_token')
+                else:
+                    self._get_keys_manually()
+                self.factory_reddit()
+            else:
+                raise AttributeError('Config is incomplete, check for your keys.')
+
+    def _get_keys_manually(self):
+        scopes = ['identity', 'account', 'edit', 'flair', 'history', 'livemanage', 'modconfig', 'modflair',
+                  'modlog', 'modothers', 'modposts', 'modself', 'modwiki', 'mysubreddits', 'privatemessages', 'read',
+                  'report', 'save', 'submit', 'subscribe', 'vote', 'wikiedit', 'wikiread']
+        assert self.OA_APP_KEY and self.OA_APP_SECRET, \
+            'OAuth Configuration incomplete, please check your configuration file.'
+        self.logger.info('Bot on hold, you need to input some data first to continue!')
+        self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=handlers.MultiprocessHandler())
+        self.session.set_oauth_app_info(self.OA_APP_KEY, self.OA_APP_SECRET,
+                                        'http://127.0.0.1:65010/authorize_callback')
+        url = self.session.get_authorize_url(self.BOT_NAME, set(scopes), True)
+        self.logger.info('Please login with your bot account in reddit and open the following URL: {}'.format(url))
+        self.logger.info("After you've opened and accepted the OAuth prompt, enter the full URL it redirects you to.")
+        return_url = input('Please input the full url: ')
+        code = return_url.split('code=')[-1]
+        access_information = self.session.get_access_information(code)
+        self.OA_REFRESH_TOKEN = access_information['refresh_token']
+        self.config.set(self.BOT_NAME, 'refresh_token', access_information['refresh_token'])
+        with open(resource_filename('config', 'bot_config.ini'), 'w') as f:
+            self.config.write(f)
+            f.close()
+        self.oa_refresh(force=True)
+
+    def oa_refresh(self, force=False):
+        assert self.OA_REFRESH_TOKEN and self.session, 'Cannot refresh, no refresh token or session is missing.'
+        if force or time() > self.oa_valid_until:
+            for x in range(5):
+                try:
+                    token_dict = self.session.refresh_access_information(self.OA_REFRESH_TOKEN)
+                    self.OA_ACCESS_TOKEN = token_dict['access_token']
+                    self.oa_valid_until = time() + self.OA_TOKEN_DURATION
+                    self.session.set_access_credentials(**token_dict)
+                    return
+                except HTTPException:
+                    pass
+            raise ConnectionAbortedError('PRAW could not authenticate due to an HTTP Exception.')
 
     def get_unread_messages(self):
         """Runs down all unread messages of a Reddit session."""
         if hasattr(self, "session"):
-            self.oauth.refresh()
+            self.oa_refresh()
             try:
                 msgs = self.session.get_unread()
                 for msg in msgs:

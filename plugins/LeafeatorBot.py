@@ -46,7 +46,7 @@ class LeafeatorBot(Base):
                 self.logger.info('Skipped - already commented in thread.')
                 return False
 
-            self.oauth.refresh()
+            self.oa_refresh()
             self.session._add_comment(thing.name, self.RESPONSE)
             self.database.insert_into_storage(thread_id, self.BOT_NAME)
             return True

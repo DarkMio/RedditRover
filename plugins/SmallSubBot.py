@@ -43,7 +43,7 @@ class SmallSubBot(Base):
         self.standard_ban_procedure(message)
 
     def execute_textbody(self, textbody):
-        self.oauth.refresh()
+        self.oa_refresh()
         result = self.REGEX.findall(" " + textbody)
         if result:
             response = self.generate_response(result, 'wtf')
@@ -52,7 +52,7 @@ class SmallSubBot(Base):
     def general_action(self, submission):
         result = self.REGEX.findall(" " + submission.title)
         if result:
-            self.oauth.refresh()
+            self.oa_refresh()
             response = self.generate_response(result, submission.subreddit.display_name)
             if response:
                 try:
