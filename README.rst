@@ -33,7 +33,6 @@ Running on Python 3+:
 .. code-block:: python
 
     pip install praw --upgrade
-    pip install praw-oauth2util
 
 All other dependencies are standard builtins. To be able to run this framework,
 you will need to run ``praw-multiprocess`` to avoid higher API usage than from Reddits guidelines.
@@ -52,8 +51,9 @@ Version & Changelog
 This bot is now again under development. Way less complex code, more segmentation and more single responsibility principle.
 
 ``
-v0.6: Recode of the bot. A trillion of new features, which I will document soon™
+v0.7: No more praw-OAuth2Util, strengthening the framework, resolving major issues
 --------------------------------------------------------------------------------------------------------------
+v0.6: Recode of the bot. A trillion of new features, which I will document soon™
 v0.5: Added more bots - and then it kept fucking up.
 v0.4: Should now load infinite amounts of links, represent them with the website title and respond accordingly.
 v0.3: Fixing behaviour with non-escaped chars in links and stopping the self-spam.
