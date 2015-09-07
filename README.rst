@@ -79,7 +79,7 @@ Planned Massdrop Features
 
 Help, questions, contribution
 -----------------------------
-Check out the [FAQ](https://github.com/DarkMio/Massdrop-Reddit-Bot/wiki/FAQ), which should cover most issues at first. Feel free to mail me, even here on GitHub.
+Check out the `FAQ<https://github.com/DarkMio/Massdrop-Reddit-Bot/wiki/FAQ>`_, which should cover most issues at first. Feel free to mail me, even here on GitHub.
 
 .. end_faq
 
