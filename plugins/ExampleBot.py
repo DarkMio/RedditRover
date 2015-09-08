@@ -2,8 +2,8 @@ from core.BaseClass import Base
 
 
 class ExampleBot(Base):
-    def __init__(self, database):
-        super().__init__(database, 'ExampleBot')
+    def __init__(self, database, handler):
+        super().__init__(database, handler, 'MassdropBot')
 
     def execute_comment(self, comment):
         pass
@@ -25,6 +25,6 @@ class ExampleBot(Base):
         pass
 
 
-def init(database):
+def init(database, handler):
     """Init Call from module importer to return only the object itself, rather than the module."""
-    return ExampleBot(database)
+    return ExampleBot(database, handler)

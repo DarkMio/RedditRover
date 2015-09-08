@@ -70,6 +70,11 @@ def setup_logging(log_level="INFO", console_log_level=None):
     database_logger.addHandler(console_handler)
     database_logger.addHandler(standard_handler)
 
+    handler_logger = logging.getLogger('hndl')
+    handler_logger.propagate = False
+    handler_logger.addHandler(console_handler)
+    handler_logger.addHandler(standard_handler)
+
     bot_logger.info("RedditRover Logger initialized.")
     logging.getLogger("requests").setLevel(logging.WARNING)
 

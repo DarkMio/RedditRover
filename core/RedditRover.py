@@ -6,7 +6,7 @@ from sys import exit
 import pkgutil
 import traceback
 
-from praw.handlers import DefaultHandler
+from core.PRAWHandler import PRAWHandler
 from praw.errors import *
 import praw
 
@@ -43,8 +43,8 @@ class RedditRover:
         self.database_cmt = DatabaseProvider()
         self.database_subm = DatabaseProvider()
         try:
+            self.praw_handler = PRAWHandler()
             self.load_responders()
-            self.praw_handler = DefaultHandler()
             self.submission_poller = praw.Reddit(user_agent='Submission-Poller for several logins by /u/DarkMio',
                                                  handler=self.praw_handler)
             self.comment_poller = praw.Reddit(user_agent='Comment-Poller for several logins by /u/DarkMio',

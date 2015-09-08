@@ -1,6 +1,8 @@
 import time
 from functools import wraps
 
+from praw.errors import HTTPException
+
 
 def retry(ExceptionToCheck, tries=4, delay=3, backoff=2, logger=None):
     """Retry calling the decorated function using an exponential backoff.
@@ -25,8 +27,8 @@ def retry(ExceptionToCheck, tries=4, delay=3, backoff=2, logger=None):
 
         @wraps(f)
         def f_retry(*args, **kwargs):
-            mtries, mdelay = tries, delay
-            while mtries > 1:
+            mdelay = delay
+            for x in range(tries):
                 try:
                     return f(*args, **kwargs)
                 except ExceptionToCheck as e:
@@ -36,10 +38,18 @@ def retry(ExceptionToCheck, tries=4, delay=3, backoff=2, logger=None):
                     else:
                         print(msg)
                     time.sleep(mdelay)
-                    mtries -= 1
                     mdelay *= backoff
             return f(*args, **kwargs)
 
         return f_retry  # true decorator
 
     return deco_retry
+
+
+@retry(Exception, 5, 3, 1)
+def always_fails():
+    raise HTTPException('503, Service not available')
+
+if __name__ == '__main__':
+    for x in range(3):
+        always_fails()

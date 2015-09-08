@@ -8,6 +8,7 @@ from configparser import ConfigParser
 import re
 from time import time
 from praw.errors import HTTPException
+from misc.RetryDecorator import retry
 
 
 class Base(metaclass=ABCMeta):
@@ -34,6 +35,7 @@ class Base(metaclass=ABCMeta):
         self.database = database
         self.BOT_NAME = bot_name
         self.RE_BANMSG = re.compile(r'ban /([r|u])/([\d\w_]*)', re.UNICODE)
+        self.handler = handler
         if setup_from_config:
             self.factory_config()
             self.standard_setup(bot_name)
@@ -65,6 +67,8 @@ class Base(metaclass=ABCMeta):
 
     def factory_reddit(self):
         """Sets up a complete OAuth Reddit session"""
+        assert self.DESCRIPTION and self.handler and self.OA_APP_KEY and self.OA_APP_SECRET, \
+            "Necessary attributes are not set for this function."
         self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=self.handler)
         self.session.set_oauth_app_info(self.OA_APP_KEY, self.OA_APP_SECRET,
                                         'http://127.0.0.1:65010/authorize_callback')
@@ -118,19 +122,23 @@ class Base(metaclass=ABCMeta):
             f.close()
         self.oa_refresh(force=True)
 
-    def oa_refresh(self, force=False):
+    @retry(HTTPException, logger=logger)
+    def _oa_refresh(self, force=False):
         assert self.OA_REFRESH_TOKEN and self.session, 'Cannot refresh, no refresh token or session is missing.'
         if force or time() > self.oa_valid_until:
-            for x in range(5):
-                try:
-                    token_dict = self.session.refresh_access_information(self.OA_REFRESH_TOKEN)
-                    self.OA_ACCESS_TOKEN = token_dict['access_token']
-                    self.oa_valid_until = time() + self.OA_TOKEN_DURATION
-                    self.session.set_access_credentials(**token_dict)
-                    return
-                except HTTPException:
-                    pass
-            raise ConnectionAbortedError('PRAW could not authenticate due to an HTTP Exception.')
+            token_dict = self.session.refresh_access_information(self.OA_REFRESH_TOKEN)
+            self.OA_ACCESS_TOKEN = token_dict['access_token']
+            self.oa_valid_until = time() + self.OA_TOKEN_DURATION
+            self.session.set_access_credentials(**token_dict)
+            return
+
+    def oa_refresh(self, force=False):
+        """Calls _oa_refresh and tries to reset OAuth session if it fails several times."""
+        try:
+            self._oa_refresh(force)
+        except HTTPException as e:
+            self.factory_reddit()
+            self._oa_refresh(force)
 
     def get_unread_messages(self):
         """Runs down all unread messages of a Reddit session."""
