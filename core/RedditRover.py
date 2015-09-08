@@ -220,11 +220,11 @@ class RedditRover:
 
     def submission_stream(self):
         """Opens a new thread, which reads submissions from a specified subreddit."""
-        self.submissions = praw.helpers.submission_stream(self.submission_poller, 'all', limit=None, verbosity=3)
+        self.submissions = praw.helpers.submission_stream(self.submission_poller, 'all', limit=None, verbosity=0)
 
     def comment_stream(self):
         """Opens a new thread, which reads comments from a specified subreddit."""
-        self.comments = praw.helpers.comment_stream(self.comment_poller, 'all', limit=None, verbosity=3)
+        self.comments = praw.helpers.comment_stream(self.comment_poller, 'all', limit=None, verbosity=0)
 
     def read_config(self):
         """Reads the config."""
