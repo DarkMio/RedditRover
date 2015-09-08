@@ -27,8 +27,9 @@ class Base(metaclass=ABCMeta):
     logger = None       # logger for specific module
     config = None       # Could be used for ConfigParser - there is a method for that.
     database = None     # Session to database.
+    handler = None      # DefaultHandler of PRAW, given through to avoid api rate limit issues
 
-    def __init__(self, database, bot_name, setup_from_config=True):
+    def __init__(self, database, handler, bot_name, setup_from_config=True):
         self.factory_logger()
         self.database = database
         self.BOT_NAME = bot_name
@@ -64,7 +65,7 @@ class Base(metaclass=ABCMeta):
 
     def factory_reddit(self):
         """Sets up a complete OAuth Reddit session"""
-        self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=handlers.MultiprocessHandler())
+        self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=self.handler)
         self.session.set_oauth_app_info(self.OA_APP_KEY, self.OA_APP_SECRET,
                                         'http://127.0.0.1:65010/authorize_callback')
         self.oa_refresh(force=True)

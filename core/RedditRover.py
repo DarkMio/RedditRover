@@ -6,7 +6,7 @@ from sys import exit
 import pkgutil
 import traceback
 
-from praw.handlers import MultiprocessHandler
+from praw.handlers import DefaultHandler
 from praw.errors import *
 import praw
 
@@ -44,7 +44,7 @@ class RedditRover:
         self.database_subm = DatabaseProvider()
         try:
             self.load_responders()
-            self.praw_handler = MultiprocessHandler()
+            self.praw_handler = DefaultHandler()
             self.submission_poller = praw.Reddit(user_agent='Submission-Poller for several logins by /u/DarkMio',
                                                  handler=self.praw_handler)
             self.comment_poller = praw.Reddit(user_agent='Comment-Poller for several logins by /u/DarkMio',
@@ -81,7 +81,7 @@ class RedditRover:
             if hasattr(thing, 'subreddit') and db.check_subreddit_ban(thing.subreddit.display_name, b_name):
                 return False
             return True
-        except:
+        except Exception:
             return False
 
     def load_responders(self):
@@ -99,7 +99,7 @@ class RedditRover:
             module = __import__(modname, fromlist="dummy")
             # every sub module has to have an object provider,
             # this makes importing the object itself easy and predictable.
-            module_object = module.init(DatabaseProvider())
+            module_object = module.init(DatabaseProvider(), self.praw_handler)
             try:
                 if not isinstance(module_object, Base):
                     raise ImportError('Module {} does not inherit from Base class'.format(
@@ -220,11 +220,11 @@ class RedditRover:
 
     def submission_stream(self):
         """Opens a new thread, which reads submissions from a specified subreddit."""
-        self.submissions = praw.helpers.submission_stream(self.submission_poller, 'all', limit=None, verbosity=0)
+        self.submissions = praw.helpers.submission_stream(self.submission_poller, 'all', limit=None, verbosity=3)
 
     def comment_stream(self):
         """Opens a new thread, which reads comments from a specified subreddit."""
-        self.comments = praw.helpers.comment_stream(self.comment_poller, 'all', limit=None, verbosity=0)
+        self.comments = praw.helpers.comment_stream(self.comment_poller, 'all', limit=None, verbosity=3)
 
     def read_config(self):
         """Reads the config."""

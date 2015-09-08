@@ -3,7 +3,7 @@ import threading
 import time
 
 
-class MultiThreader(object):
+class MultiThreader:
     """Throw bound methods at it and it joins you threads together."""
     threads = list()         # Holds all threads together.
 
