@@ -6,10 +6,9 @@ class PRAWHandler(DefaultHandler):
     """It's like the default handler, but hacked open."""
 
     def __init__(self):
-        self.dh = super(PRAWHandler, self).__init__()
-        self.logger = getLogger('handler')
+        super().__init__()
+        self.logger = getLogger('hndl')
 
     def request(self, request, proxies, timeout, verify, **_):
         self.logger.debug('{:4} {}'.format(request.method, request.url))
-        super()
-        self.dh.request(request, proxies, timeout, verify, **_)
+        return self.http.send(request, proxies=proxies, timeout=timeout, allow_redirects=False, verify=verify)

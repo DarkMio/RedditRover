@@ -2,7 +2,8 @@
 import logging
 import time
 import sys
-
+from pkg_resources import resource_filename
+from os import path
 
 FORMAT = '%(asctime)s [%(levelname)s] -- [%(name)s:%(module)s/%(funcName)s]-- %(message)s'
 CHAT_FORMAT = '[%(asctime)] %(message)'
@@ -30,6 +31,8 @@ def setup_logging(log_level="INFO", console_log_level=None):
     """Thanks to Renol: https://github.com/RenolY2/Renol-IRC-rv2
        This logging handler is quite powerful and nicely formatted."""
     null_handler = logging.NullHandler()
+    file_handler = logging.FileHandler(resource_filename('config', 'requests.log'))
+    file_handler.setLevel(logging.DEBUG)
     logging.basicConfig(level=log_level, handlers=[null_handler])
 
     if console_log_level is None:
@@ -72,8 +75,7 @@ def setup_logging(log_level="INFO", console_log_level=None):
 
     handler_logger = logging.getLogger('hndl')
     handler_logger.propagate = False
-    handler_logger.addHandler(console_handler)
-    handler_logger.addHandler(standard_handler)
+    handler_logger.addHandler(file_handler)
 
     bot_logger.info("RedditRover Logger initialized.")
     logging.getLogger("requests").setLevel(logging.WARNING)
