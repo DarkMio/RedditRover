@@ -31,8 +31,6 @@ def setup_logging(log_level="INFO", console_log_level=None):
     """Thanks to Renol: https://github.com/RenolY2/Renol-IRC-rv2
        This logging handler is quite powerful and nicely formatted."""
     null_handler = logging.NullHandler()
-    file_handler = logging.FileHandler(resource_filename('config', 'requests.log'))
-    file_handler.setLevel(logging.DEBUG)
     logging.basicConfig(level=log_level, handlers=[null_handler])
 
     if console_log_level is None:
@@ -57,21 +55,29 @@ def setup_logging(log_level="INFO", console_log_level=None):
     standard_handler.setFormatter(logging_format)
     standard_handler.addFilter(not_filter_info)
 
+    # Adding a log handler
+    file_handler = logging.FileHandler(resource_filename('config', 'requests.log'))
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(logging_format)
+
     # this logger writes completely into the console.
     bot_logger = logging.getLogger("bot")
     bot_logger.propagate = False
     bot_logger.addHandler(console_handler)
     bot_logger.addHandler(standard_handler)
+    bot_logger.addHandler(file_handler)
 
     plugin_logger = logging.getLogger("plugin")
     plugin_logger.propagate = False
     plugin_logger.addHandler(console_handler)
     plugin_logger.addHandler(standard_handler)
+    plugin_logger.addHandler(file_handler)
 
     database_logger = logging.getLogger("database")
     database_logger.propagate = False
     database_logger.addHandler(console_handler)
     database_logger.addHandler(standard_handler)
+    database_logger.addHandler(file_handler)
 
     handler_logger = logging.getLogger('hndl')
     handler_logger.propagate = False
