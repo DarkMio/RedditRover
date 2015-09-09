@@ -1,3 +1,4 @@
+# coding=utf-8
 from praw.handlers import DefaultHandler
 from logging import getLogger
 
