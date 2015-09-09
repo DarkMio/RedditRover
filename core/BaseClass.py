@@ -140,6 +140,7 @@ class Base(metaclass=ABCMeta):
             self.factory_reddit()
             self._oa_refresh(force)
 
+    @retry(HTTPException, logger=logger)
     def get_unread_messages(self):
         """Runs down all unread messages of a Reddit session."""
         if hasattr(self, "session"):
