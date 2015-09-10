@@ -1,5 +1,7 @@
+# coding=utf-8
 import time
 from functools import wraps
+from time import time
 
 from praw.errors import HTTPException
 
@@ -46,10 +48,12 @@ def retry(ExceptionToCheck, tries=4, delay=3, backoff=2, logger=None):
     return deco_retry
 
 
-@retry(Exception, 5, 3, 1)
-def always_fails():
-    raise HTTPException('503, Service not available')
+def delete_object(f):
+
+    @wraps(f)
+    def del_obj(object, lifetime):
+        if lifetime < time():
+            del object
 
 if __name__ == '__main__':
-    for x in range(3):
-        always_fails()
+    pass

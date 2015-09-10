@@ -8,7 +8,7 @@ from configparser import ConfigParser
 import re
 from time import time
 from praw.errors import HTTPException
-from misc.RetryDecorator import retry
+from misc.Decorators import retry
 
 
 class Base(metaclass=ABCMeta):
