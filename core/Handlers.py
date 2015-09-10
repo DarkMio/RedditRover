@@ -6,16 +6,11 @@ from threading import Lock
 
 
 class RoverHandler:
-    # @TODO : Currently freezes all threads, not nice (up to 2s possible) :
-    # @TODO : - Locking thread when sending or calculating the exact dispatch time, all other threads should
-    # @TODO :   queue up after that. Needs minor changes.
-    # @TODO : Add unique request token lifetime to the list, so it gets deleted after 70 minutes. Definitly
-    # @TODO : helps with memory filling up when running on dedis.
 
     def __init__(self):
         self.logger = getLogger('hndl')
         self.no_auth = time() - 1                                   # simply the time since the last no_auth was sent
-        self.oauth = {}                                             # {'unique request token': time_last_sent}
+        self.oauth = {}                                             # {'unique request token': [last_sent, lifetime]}
         self.http = Session()
         self.rl_lock = Lock()
 
@@ -31,28 +26,36 @@ class RoverHandler:
         return 0
 
     def request(self, request, proxies, timeout, verify, **_):
-        self.rl_lock.acquire()
+        # cleans up the dictionary with access keys every time someone tries a request.
+        self.oauth = {key: value for key, value in self.oauth.items() if value[1] > time()}
         bearer = ''
         if '_cache_key' in _:
             cache_key = _.get('_cache_key')
             token_group = cache_key[1]
             if len(token_group) >= 5:
                 bearer = token_group[4]
-        if bearer:
+
+        if bearer and bearer in self.oauth:
             if bearer in self.oauth:
-                time_dispatched = self.dispatch_timer(self.oauth[bearer] + 1)
-                self.oauth[bearer] = time_dispatched  # @TODO: Can be in one line, pls update
+                # lock the thread to update values
+                self.rl_lock.acquire()
+                last_dispatched = self.oauth[bearer][0]
+                left_until_dispatch = self.dispatch_timer(last_dispatched + 1)
+                self.oauth[bearer][0] = time() + left_until_dispatch
                 self.rl_lock.release()
-                return self.send_request(request, proxies, timeout, verify)
-            else:
-                self.oauth[bearer] = time()
-                self.rl_lock.release()
-                return self.send_request(request, proxies, timeout, verify)
+                # and now we can sleep the single thread in here - the timer should've updated, so the next
+                # thread cannot possibly dispatch at the same time, instead gets slept later in.
+                sleep(left_until_dispatch)
+        elif bearer:
+            self.oauth[bearer] = [time(), time() + 70 * 60]  # lifetime: 70 minutes
         else:
-            time_dispatched = self.dispatch_timer(self.no_auth + 2)
-            self.no_auth = time_dispatched  # @TODO: Can also be inline, pls update
+            self.rl_lock.acquire()
+            last_dispatched = self.no_auth
+            left_until_dispatch = self.dispatch_timer(last_dispatched + 2)
+            self.no_auth = time() + left_until_dispatch
             self.rl_lock.release()
-            return self.send_request(request, proxies, timeout, verify)
+            sleep(left_until_dispatch)
+        return self.send_request(request, proxies, timeout, verify)
 
     def send_request(self, request, proxies, timeout, verify):
         self.logger.debug('{:4} {}'.format(request.method, request.url))
@@ -61,5 +64,5 @@ class RoverHandler:
     def dispatch_timer(self, next_possible_dispatch):
         time_until_dispatch = next_possible_dispatch - time()
         if time_until_dispatch > 0:  # Make sure that we have given it enough time.
-            sleep(time_until_dispatch)
-        return time()
+            return time_until_dispatch
+        return 0

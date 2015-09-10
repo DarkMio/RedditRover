@@ -6,7 +6,7 @@ from sys import exit
 import pkgutil
 import traceback
 
-from core.PRAWHandler import PRAWHandler, RoverHandler
+from core.Handlers import RoverHandler
 from praw.errors import *
 import praw
 
