@@ -1,24 +1,8 @@
 # coding=utf-8
-from praw.handlers import *
 from logging import getLogger
 from time import time, sleep
 from requests import Session
 from threading import Lock
-
-
-class PRAWHandler(RateLimitHandler):
-    """It's like the default handler, but hacked open."""
-    # @TODO: Remove monkey patching (the fuck.) and keep track of sessions to limit rates.
-    # @TODO: Even better idea: Rewrite the handler.
-
-    def __init__(self):
-        super().__init__()
-        self.logger = getLogger('hndl')
-
-    def request(self, request, proxies, timeout, verify, **_):
-        self.logger.debug('{:4} {}'.format(request.method, request.url))
-        return self.http.send(request, proxies=proxies, timeout=timeout, allow_redirects=False, verify=verify)
-PRAWHandler.request = PRAWHandler.rate_limit(PRAWHandler.request)
 
 
 class RoverHandler:
