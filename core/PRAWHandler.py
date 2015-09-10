@@ -3,6 +3,7 @@ from praw.handlers import *
 from logging import getLogger
 from time import time, sleep
 from requests import Session
+from threading import Lock
 
 
 class PRAWHandler(RateLimitHandler):
@@ -27,6 +28,7 @@ class RoverHandler:
         self.no_auth = time() - 1                                   # simply the time since the last no_auth was sent
         self.oauth = {}                                             #
         self.http = Session()
+        self.rl_lock = Lock()
 
     def __del__(self):
         if self.http:
@@ -35,7 +37,12 @@ class RoverHandler:
             except Exception:
                 pass
 
+    @classmethod
+    def evict(cls, urls):
+        return 0
+
     def request(self, request, proxies, timeout, verify, **_):
+        self.rl_lock.acquire()
         bearer = ''
         if '_cache_key' in _:
             cache_key = _.get('_cache_key')
@@ -45,18 +52,25 @@ class RoverHandler:
         if bearer:
             if bearer in self.oauth:
                 time_dispatched = self.dispatch_timer(self.oauth[bearer] + 1)
+                self.oauth[bearer] = time_dispatched  # @TODO: Can be in one line, pls update
+                self.rl_lock.release()
+                return self.send_request(request, proxies, timeout, verify)
+            else:
+                self.oauth[bearer] = time()
+                self.rl_lock.release()
                 return self.send_request(request, proxies, timeout, verify)
         else:
             time_dispatched = self.dispatch_timer(self.no_auth + 2)
+            self.no_auth = time_dispatched  # @TODO: Can also be inline, pls update
+            self.rl_lock.release()
             return self.send_request(request, proxies, timeout, verify)
 
     def send_request(self, request, proxies, timeout, verify):
         self.logger.debug('{:4} {}'.format(request.method, request.url))
         return self.http.send(request, proxies=proxies, timeout=timeout, allow_redirects=False, verify=verify)
 
-    @staticmethod
-    def dispatch_timer(next_possible_dispatch):
-        time_until_dispatch = (next_possible_dispatch) - time()
+    def dispatch_timer(self, next_possible_dispatch):
+        time_until_dispatch = next_possible_dispatch - time()
         if time_until_dispatch > 0:  # Make sure that we have given it enough time.
             sleep(time_until_dispatch)
         return time()
