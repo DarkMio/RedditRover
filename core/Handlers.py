@@ -61,7 +61,8 @@ class RoverHandler:
         self.logger.debug('{:4} {}'.format(request.method, request.url))
         return self.http.send(request, proxies=proxies, timeout=timeout, allow_redirects=False, verify=verify)
 
-    def dispatch_timer(self, next_possible_dispatch):
+    @staticmethod
+    def dispatch_timer(next_possible_dispatch):
         time_until_dispatch = next_possible_dispatch - time()
         if time_until_dispatch > 0:  # Make sure that we have given it enough time.
             return time_until_dispatch
