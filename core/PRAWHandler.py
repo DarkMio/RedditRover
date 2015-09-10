@@ -7,10 +7,10 @@ from threading import Lock
 
 class RoverHandler:
     # @TODO : Currently freezes all threads, not nice (up to 2s possible) :
-    #        - Locking thread when sending or calculating the exact dispatch time, all other threads should
-    #          queue up after that. Needs minor changes.
+    # @TODO : - Locking thread when sending or calculating the exact dispatch time, all other threads should
+    # @TODO :   queue up after that. Needs minor changes.
     # @TODO : Add unique request token lifetime to the list, so it gets deleted after 70 minutes. Definitly
-    #        helps with memory filling up when running on dedis.
+    # @TODO : helps with memory filling up when running on dedis.
 
     def __init__(self):
         self.logger = getLogger('hndl')
