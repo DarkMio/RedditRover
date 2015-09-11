@@ -3,14 +3,14 @@ from setuptools import setup
 
 setup(
     name='RedditRover',
-    version='0.6',
+    version='0.9',
     packages=['core', 'config', 'plugins', 'misc'],
     url='https://github.com/DarkMio/Massdrop-Reddit-Bot',
-    license='MIT',
+    license='GPLv2',
     author='Martin Zier',
     author_email='miostarkid@gmail.com',
     description='RedditRover is a framework to host multiple bots that trigger on comments or submissions on reddit.',
-    install_requires=['praw>=3.1.0', 'praw-OAuth2Util>=0.2.2'],
+    install_requires=['praw>=3.1.0'],
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: MIT License",

@@ -37,7 +37,7 @@ you will need to run ``praw-multiprocess`` to avoid higher API usage than from R
 
 Debugging
 ---------
-Bot features are written in Abstract Base Classes. Inherit from it and execute one of the test functions:
+Bot features are written in Abstract PluginBase Classes. Inherit from it and execute one of the test functions:
 ``test_single_submission(submission_id)``, ``test_single_comment(comment_id)`` or ``__test_single_thing(thing_id)``.
 Other than that, use atomic tests of your features however you please. Instantiating a plugin on its own works and
 supposed to test your features. Read into the documentation to get a detailed guide how this bot works and what you bot has to do.
