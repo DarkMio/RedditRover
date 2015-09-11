@@ -1,5 +1,5 @@
 # coding=utf
-from .baseclass import Base
+from .baseclass import PluginBase
 from .databaseprovider import DatabaseProvider
 from .handlers import RoverHandler
 from .logprovider import setup_logging

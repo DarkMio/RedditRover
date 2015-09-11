@@ -41,16 +41,16 @@ maintaining code really simple. First you import the base class:
 
 .. code-block:: python
 
-    from core.BaseClass import Base
+    from core.BaseClass import PluginBase
 
-3. Object from Base
+3. Object from PluginBase
 -------------------
 Now comes the real part: Every plugin needs to inherit from the base class and has to implement a specific set of
 methods to function properly. This would look like this:
 
 .. code-block:: python
 
-    class MyPlugin(Base):
+    class MyPlugin(PluginBase):
 
         def __init__(self, database):
             super().__init__(database, 'MyBotName')
@@ -78,7 +78,7 @@ methods to function properly. This would look like this:
 4. Function for instantiating the plugin
 ----------------------------------------
 Next is an init-call to initialize the plugin, setup whatever you need to and return the object that inherits from
-``BaseClass/Base``. This is a design decision to make it easy, run init-tasks and give a fixed return object back.
+``BaseClass/PluginBase``. This is a design decision to make it easy, run init-tasks and give a fixed return object back.
 Also you can define if you need access to the database storage for example.
 
 All you need to do is following:
@@ -90,7 +90,7 @@ All you need to do is following:
 
 5. Test Block (optional)
 ------------------------
-And at last there is the optional test block. ``BaseClass/Base`` features two functions to load a single submission or
+And at last there is the optional test block. ``BaseClass/PluginBase`` features two functions to load a single submission or
 comment by id to test your bot against real world data and test cases. You can now execute the plugin itself.
 
 .. code-block:: python
@@ -124,10 +124,10 @@ In case you struggle with assembling the code, here is it as full set:
 
 .. code-block:: python
 
-    from core.BaseClass import Base
+    from core.BaseClass import PluginBase
 
 
-    class MyPlugin(Base):
+    class MyPlugin(PluginBase):
 
         def __init__(self, database):
             super().__init__(database, 'MyBotName')

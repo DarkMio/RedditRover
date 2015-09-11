@@ -7,7 +7,7 @@ Submodules
 core.BaseClass module
 ---------------------
 
-.. automodule:: core.BaseClass
+.. automodule:: core.baseclass
     :members:
     :undoc-members:
     :show-inheritance:
@@ -15,7 +15,7 @@ core.BaseClass module
 core.DatabaseProvider module
 ----------------------------
 
-.. automodule:: core.DatabaseProvider
+.. automodule:: core.databaseprovider
     :members:
     :undoc-members:
     :show-inheritance:
@@ -23,7 +23,7 @@ core.DatabaseProvider module
 core.LogProvider module
 -----------------------
 
-.. automodule:: core.LogProvider
+.. automodule:: core.logprovider
     :members:
     :undoc-members:
     :show-inheritance:
@@ -31,7 +31,7 @@ core.LogProvider module
 core.MultiThreader module
 -------------------------
 
-.. automodule:: core.MultiThreader
+.. automodule:: core.multithreader
     :members:
     :undoc-members:
     :show-inheritance:
@@ -39,7 +39,7 @@ core.MultiThreader module
 core.RedditRover module
 -----------------------
 
-.. automodule:: core.RedditRover
+.. automodule:: core.redditrover
     :members:
     :undoc-members:
     :show-inheritance:

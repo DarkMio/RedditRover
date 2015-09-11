@@ -50,6 +50,7 @@ Some testing
 -------------------
 
 .. autoclass:: core.redditrover.RedditRover
+    :private-members:
     :members:
     :undoc-members:
 

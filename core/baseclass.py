@@ -13,7 +13,7 @@ from praw.errors import HTTPException
 from core.decorators import retry
 
 
-class Base(metaclass=ABCMeta):
+class PluginBase(metaclass=ABCMeta):
     DESCRIPTION = None  # user_agent: describes the bot / function / author
     USERNAME = None     # reddit username
     OAUTH_FILENAME = None  # password of reddit username

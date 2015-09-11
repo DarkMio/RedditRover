@@ -8,10 +8,10 @@ a bot into reddit, providing the standard config or testing against single, manu
 Abstract methods
 ----------------
 
-Within the Base are a couple of abstract methids, all of which have to be overwritten. The plugin won't be imported if
+Within the PluginBase are a couple of abstract methids, all of which have to be overwritten. The plugin won't be imported if
 those core features are not overwritten.
 
-.. py:class:: core.BaseClass.Base(database, bot_name, setup_from_config=True)
+.. py:class:: core.BaseClass.PluginBase(database, bot_name, setup_from_config=True)
 
 .. py:function:: execute_submission(self, submission)
 
