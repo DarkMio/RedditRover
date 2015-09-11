@@ -7,10 +7,6 @@ content without having to mangle with all ins and outs of reddit, praw and API l
 
 .. code-block:: bash
 
-    $ praw-multiprocess
-
-.. code-block:: bash
-
     $ RedditRover/main.py
 
 That will already do start the entire hosting and loading process - given you have already written a plugin,
