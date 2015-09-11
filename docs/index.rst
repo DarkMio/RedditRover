@@ -43,3 +43,13 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 
+Some testing
+============
+
+:mod:`core` Package
+-------------------
+
+.. autoclass:: core.redditrover.RedditRover
+    :members:
+    :undoc-members:
+
