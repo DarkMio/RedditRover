@@ -34,13 +34,13 @@ class DatabaseProvider:
         """Initializes the database and creates necessary tables."""
         info = lambda x: self.logger.info("Table '{}' had to be generated.".format(x))
 
-        if not self.__database_check_if_exists('storage'):
+        if not self._database_check_if_exists('storage'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS storage (thing_id STR(15), bot_module INT(5), timestamp datetime)'
             )
             info('storage')
 
-        if not self.__database_check_if_exists('update_threads'):
+        if not self._database_check_if_exists('update_threads'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS update_threads '
                 '(thing_id STR(15) NOT NULL, bot_module INT(5), created DATETIME, '
@@ -48,26 +48,26 @@ class DatabaseProvider:
             )
             info('update_threads')
 
-        if not self.__database_check_if_exists('modules'):
+        if not self._database_check_if_exists('modules'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS modules '
                 '(module_name STR(50))'
             )
             info('modules')
 
-        if not self.__database_check_if_exists('userbans'):
+        if not self._database_check_if_exists('userbans'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS userbans (username STR(50) NOT NULL, bot_module INT(5))'
             )
             info('userbans')
 
-        if not self.__database_check_if_exists('subbans'):
+        if not self._database_check_if_exists('subbans'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS subbans (subreddit STR(50) NOT NULL, bot_module INT(5))'
             )
             info('subbans')
 
-    def __database_check_if_exists(self, table_name):
+    def _database_check_if_exists(self, table_name):
         """Helper method, Internal check if a table exists, refrain from using it."""
         self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name=(?)', (table_name,))
         return self.cur.fetchone()
@@ -79,7 +79,7 @@ class DatabaseProvider:
 
     def get_all_storage(self):
         """Returns all elements inside the bot storage."""
-        self.__error_if_not_exists(module)
+        self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, timestamp FROM storage
                             INNER JOIN modules
                             ON storage.bot_module = modules._ROWID_""")
@@ -87,7 +87,7 @@ class DatabaseProvider:
 
     def retrieve_thing(self, thing_id, module):
         """Returns a single thing from the storage - therefore is true if it exists"""
-        self.__error_if_not_exists(module)
+        self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, bot_module, timestamp FROM storage
                             WHERE thing_id = (?)
                             AND bot_module = (SELECT _ROWID_ FROM modules WHERE module_name=(?))
@@ -106,7 +106,7 @@ class DatabaseProvider:
 
     def insert_into_update(self, thing_id, module, lifetime, interval):
         """Inserts a thing (comment or submission) into the update-table, which calls a module for update-actions."""
-        self.__error_if_not_exists(module)
+        self._error_if_not_exists(module)
         self.cur.execute("""
                         INSERT INTO update_threads (thing_id, bot_module, created, lifetime, last_updated, interval)
                             VALUES (
@@ -121,7 +121,7 @@ class DatabaseProvider:
 
     def get_all_update(self):
         """Returns all elements inside the update_threads table"""
-        self.__error_if_not_exists(module)
+        self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, created, lifetime, last_updated, interval
                             FROM update_threads
                             INNER JOIN modules
@@ -129,9 +129,9 @@ class DatabaseProvider:
                             ORDER BY last_updated ASC""")
         return self.cur.fetchall()
 
-    def __select_to_update(self, module):
+    def _select_to_update(self, module):
         """Helper method, refrain from using it."""
-        self.__error_if_not_exists(module)
+        self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, created, lifetime, last_updated, interval
                             FROM update_threads
                             INNER JOIN modules
@@ -144,17 +144,17 @@ class DatabaseProvider:
 
     def get_latest_to_update(self, module):
         """Returns a single thing (comment or submission) for a module."""
-        self.__select_to_update(module)
+        self._select_to_update(module)
         return self.cur.fetchone()
 
     def get_all_to_update(self, module):
         """Returns _all_ things (comments or submissions) for a module."""
-        self.__select_to_update(module)
+        self._select_to_update(module)
         return self.cur.fetchall()
 
     def update_timestamp_in_update(self, thing_id, module):
         """Updates the timestamp when a thing was updated last."""
-        self.__error_if_not_exists(module)
+        self._error_if_not_exists(module)
         self.cur.execute("""UPDATE update_threads
                             SET last_updated=CURRENT_TIMESTAMP
                             WHERE thing_id=(?)
@@ -163,7 +163,7 @@ class DatabaseProvider:
 
     def delete_from_update(self, thing_id, module):
         """Deletes _all_ things (comments or submissions) for a module when it outlived its lifetime."""
-        self.__error_if_not_exists(module)
+        self._error_if_not_exists(module)
         self.cur.execute("""DELETE FROM update_threads
                             WHERE thing_id=(?)
                             AND bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = (?))
@@ -171,7 +171,7 @@ class DatabaseProvider:
 
     def register_module(self, module):
         """Registers a module (or notifies you if it has been already registered)."""
-        if self.__check_if_module_exists(module):
+        if self._check_if_module_exists(module):
             return
         self.logger.debug("Module {} has been registered.".format(module))
         self.cur.execute('INSERT INTO modules VALUES ((?))', (module,))
@@ -272,7 +272,7 @@ class DatabaseProvider:
         """Removes all subreddit bans. No exceptions."""
         self.cur.execute("DELETE FROM subbans")
 
-    def __check_if_module_exists(self, module):
+    def _check_if_module_exists(self, module):
         """Helper method to determine if a module has been already registered. Refrain from using it."""
         self.cur.execute('SELECT COUNT(*) FROM modules WHERE module_name = (?)', (module,))
         result = self.cur.fetchone()
@@ -283,10 +283,10 @@ class DatabaseProvider:
         if result[0] > 1:
             raise ValueError("A module was registered multiple times and is therefore inconsistent. Call for help.")
 
-    def __error_if_not_exists(self, module):
+    def _error_if_not_exists(self, module):
         """Helper method for throwing a concrete error if a module has not been registered, yet a critical database
            task should have been accomplished."""
-        if not self.__check_if_module_exists(module):
+        if not self._check_if_module_exists(module):
             raise LookupError('The module where this operation comes from is not registered!')
 
     def get_all_modules(self):

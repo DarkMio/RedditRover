@@ -63,6 +63,7 @@ class RedditRover:
         self.config = ConfigParser()
         self.config.read(resource_filename('config', 'bot_config.ini'))
         self.multi_thread = MultiThreader()
+        self.lock = self.multi_thread.get_lock()
         self.database_update = DatabaseProvider()
         self.database_cmt = DatabaseProvider()
         self.database_subm = DatabaseProvider()
@@ -83,7 +84,6 @@ class RedditRover:
         self.delete_after = self.config.get('RedditRover', 'delete_after')
         self.submissions = praw.helpers.submission_stream(self.submission_poller, 'all', limit=None, verbosity=0)
         self.comments = praw.helpers.comment_stream(self.comment_poller, 'all', limit=None, verbosity=0)
-        self.lock = self.multi_thread.get_lock()
         self.multi_thread.go([self.comment_thread], [self.submission_thread], [self.update_thread])
         self.multi_thread.join_threads()
 

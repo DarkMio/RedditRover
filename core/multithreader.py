@@ -7,6 +7,9 @@ class MultiThreader:
     """Throw bound methods at it and it joins you threads together."""
     threads = list()         # Holds all threads together.
 
+    def __init__(self):
+        self.lock = threading.Lock()
+
     def go(self, *args):
         for line in args:
             if len(line) == 1:
@@ -26,13 +29,12 @@ class MultiThreader:
             while t.isAlive():
                 t.join(5)
 
-    @staticmethod
-    def get_lock():
+    def get_lock(self):
         """Returns a threading RLock object
 
         :return: threading.RLock()
         """
-        return threading.Lock()
+        return self.lock
 
     @staticmethod
     def repeater(thread):
