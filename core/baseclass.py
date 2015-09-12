@@ -14,9 +14,67 @@ from core.decorators import retry
 
 
 class PluginBase(metaclass=ABCMeta):
+    """
+    PluginBase is that basis of every plugin, ensures the functionality of a plugin and has already methods for handling
+    a lot of basic functions. The abstract methods in this plugin have to be overwritten, otherwise it won't import and
+    will not work at all.
+
+    * attributes with an asterisk do not have to be set without being logged in
+
+    :ivar DESCRIPTION: user_agent: describes the bot / function / author
+    :type DESCRIPTION: str
+    :vartype DESCRIPTION: str
+    :ivar USERNAME: *The username which should've been logged in, will be verified after logging in.
+    :type USERNAME: str
+    :vartype DESCRIPTION: str
+    :ivar BOT_NAME: Give the bot a nice name
+    :type BOT_NAME: str
+    :vartype BOT_NAME: str
+    :ivar IS_LOGGED_IN: Representing if a plugin needs a login or not.
+    :type IS_LOGGED_IN: bool
+    :vartype IS_LOGGED_IN: bool
+    :ivar SELF_IGNORE: *Decides if comments from the same username as the plugin are automatically skipped.
+    :type SELF_IGNORE: bool
+    :vartype SELF_IGNORE: bool
+    :ivar OA_ACCESS_TOKEN: *Access token for every requests. Gets automatically fetched and refreshed with
+    :ivar OA_ACCESS_TOKEN: `oa_refresh(force=False)`
+    :type OA_ACCESS_TOKEN: str
+    :vartype OA_ACCESS_TOKEN: str
+    :ivar OA_REFRESH_TOKEN: *Refresh token which gets queried the first time a plugin is initialized, otherwise loaded.
+    :type OA_REFRESH_TOKEN: str
+    :vartype OA_REFRESH_TOKEN: str
+    :ivar OA_APP_KEY: *OAuth Application Key, which has to be set in the config.
+    :type OA_APP_KEY: str
+    :vartype OA_APP_KEY: str
+    :ivar OA_APP_SECRET: *OAuth Secret Key, which has to be set in the config.
+    :type OA_APP_SECRET: str
+    :vartype OA_APP_SECRET: str
+    :ivar OA_TOKEN_DURATION: *OAuth Token validation timer. Usually set to 59minutes to have a good error margin
+    :type OA_TOKEN_DURATION: int | float
+    :vartype OA_TOKEN_DURATION: int | float
+    :ivar OA_VALID_UNTIL: *Determines how long the OA_ACCES_TOKEN is valid as timestamp.
+                           Gets refreshed by `oa_refresh(force=False`
+    :type OA_VALID_UNTIL: int | float
+    :vartype OA_VALID_UNTIL: int | float
+    :ivar session: A session which is used to interface with Reddit.
+    :type session: praw.Reddit
+    :vartype session: praw.Reddit
+    :ivar logger: Logger for this specific plugin.
+    :type logger: logging.Logger
+    :vartype logger: logging.Logger
+    :ivar config: ConfigParser loaded for that plugin. Can access all other sections and variables aswell.
+    :type config: ConfigParser
+    :vartype config: ConfigParser
+    :ivar database: Session to database, can be None if not needed.
+    :type database: DatabaseProvider | None
+    :vartype database: DatabaseProvider | None
+    :ivar handler: Specific handler given from the framework to keep API rate limits
+    :type handler: RedditRoverHandler
+    :vartype handler: RedditRoverHandler
+    """
+
     DESCRIPTION = None  # user_agent: describes the bot / function / author
     USERNAME = None     # reddit username
-    OAUTH_FILENAME = None  # password of reddit username
     BOT_NAME = None     # Give the bot a nice name.
     IS_LOGGED_IN = False  # Mandatory bool if this bot features a logged in session
     SELF_IGNORE = True  # Bool if the bot should not react on his own submissions / comments.
@@ -25,7 +83,7 @@ class PluginBase(metaclass=ABCMeta):
     OA_APP_KEY = None      # Key of OAuth App
     OA_APP_SECRET = None   # App Secret of OAuth App - DO NOT SHARE
     OA_TOKEN_DURATION = 3540  # Tokens are valid for 60min, this one is it for 59min.
-    oa_valid_until = None  # Timestamp how long the OA_APP_KEY is valid
+    OA_VALID_UNTIL = None  # Timestamp how long the OA_APP_KEY is valid
     session = None      # a full session with login into reddit.
     logger = None       # logger for specific module
     config = None       # Could be used for ConfigParser - there is a method for that.
@@ -127,10 +185,10 @@ class PluginBase(metaclass=ABCMeta):
     @retry(HTTPException, logger=logger)
     def _oa_refresh(self, force=False):
         assert self.OA_REFRESH_TOKEN and self.session, 'Cannot refresh, no refresh token or session is missing.'
-        if force or time() > self.oa_valid_until:
+        if force or time() > self.OA_VALID_UNTIL:
             token_dict = self.session.refresh_access_information(self.OA_REFRESH_TOKEN)
             self.OA_ACCESS_TOKEN = token_dict['access_token']
-            self.oa_valid_until = time() + self.OA_TOKEN_DURATION
+            self.OA_VALID_UNTIL = time() + self.OA_TOKEN_DURATION
             self.session.set_access_credentials(**token_dict)
             return
 
