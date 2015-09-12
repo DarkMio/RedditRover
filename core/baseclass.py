@@ -19,7 +19,7 @@ class PluginBase(metaclass=ABCMeta):
     a lot of basic functions. The abstract methods in this plugin have to be overwritten, otherwise it won't import and
     will not work at all.
 
-    * attributes with an asterisk do not have to be set without being logged in
+    .. centered:: Attributes with an asterisk (*) do not have to be set without being logged in
 
     :ivar DESCRIPTION: user_agent: describes the bot / function / author
     :type DESCRIPTION: str
@@ -37,7 +37,7 @@ class PluginBase(metaclass=ABCMeta):
     :type SELF_IGNORE: bool
     :vartype SELF_IGNORE: bool
     :ivar OA_ACCESS_TOKEN: *Access token for every requests. Gets automatically fetched and refreshed with
-    :ivar OA_ACCESS_TOKEN: `oa_refresh(force=False)`
+                            `oa_refresh(force=False)`
     :type OA_ACCESS_TOKEN: str
     :vartype OA_ACCESS_TOKEN: str
     :ivar OA_REFRESH_TOKEN: *Refresh token which gets queried the first time a plugin is initialized, otherwise loaded.
