@@ -1,2 +1,7 @@
 *.ini
+plugins/*
 config/bot_config.ini
+plugins/JiffierBot.py
+plugins/LeafeatorBot.py
+plugins/MassdropBot.py
+plugins/SmallSubBot.py
