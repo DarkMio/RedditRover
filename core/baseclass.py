@@ -73,32 +73,34 @@ class PluginBase(metaclass=ABCMeta):
     :vartype handler: RedditRoverHandler
     """
 
-    DESCRIPTION = None  # user_agent: describes the bot / function / author
-    USERNAME = None     # reddit username
-    BOT_NAME = None     # Give the bot a nice name.
-    IS_LOGGED_IN = False  # Mandatory bool if this bot features a logged in session
-    SELF_IGNORE = True  # Bool if the bot should not react on his own submissions / comments.
-    OA_ACCESS_TOKEN = None  # Access Token
-    OA_REFRESH_TOKEN = None  # OAuth Refresh Token
-    OA_APP_KEY = None      # Key of OAuth App
-    OA_APP_SECRET = None   # App Secret of OAuth App - DO NOT SHARE
-    OA_TOKEN_DURATION = 3540  # Tokens are valid for 60min, this one is it for 59min.
-    OA_VALID_UNTIL = None  # Timestamp how long the OA_APP_KEY is valid
-    session = None      # a full session with login into reddit.
-    logger = None       # logger for specific module
-    config = None       # Could be used for ConfigParser - there is a method for that.
-    database = None     # Session to database.
-    handler = None      # DefaultHandler of PRAW, given through to avoid api rate limit issues
-
     def __init__(self, database, handler, bot_name, setup_from_config=True):
-        self.factory_logger()
+        self.OA_TOKEN_DURATION = 3540   # Tokens are valid for 60min, this one is it for 59min.
+        self.session = None             # Placeholder
+        self.logger = self.factory_logger()
         self.database = database
         self.BOT_NAME = bot_name
         self.RE_BANMSG = re.compile(r'ban /([r|u])/([\d\w_]*)', re.UNICODE)
         self.handler = handler
         if setup_from_config:
-            self.factory_config()
-            self.standard_setup(bot_name)
+            self.config = self.factory_config()
+            get = lambda x: self.config.get(bot_name, x)
+            self.DESCRIPTION = get('description')
+            self.IS_LOGGED_IN = self.config.getboolean(bot_name, 'is_logged_in')
+            options = [option for option, value in self.config.items(bot_name)]
+            check_values = ('app_key', 'app_secret', 'self_ignore', 'username')
+            if self.IS_LOGGED_IN:
+                if all(value in options for value in check_values):  # check if important keys are in
+                    self.SELF_IGNORE = self.config.getboolean(bot_name, 'self_ignore')
+                    self.USERNAME = get('username')
+                    self.OA_APP_KEY = get('app_key')
+                    self.OA_APP_SECRET = get('app_secret')
+                    if 'refresh_token' in options:
+                        self.OA_REFRESH_TOKEN = get('refresh_token')
+                    else:
+                        self._get_keys_manually()
+                    self.factory_reddit()
+                else:
+                    raise AttributeError('Config is incomplete, check for your keys.')
 
     def integrity_check(self):
         """Checks if the most important variables are initialized properly.
@@ -121,9 +123,10 @@ class PluginBase(metaclass=ABCMeta):
                 "Plugin is declared to be not logged in, yet has a set of credentials."
         return True
 
-    def factory_logger(self):
+    @staticmethod
+    def factory_logger():
         """Sets up a logger for the plugin."""
-        self.logger = logging.getLogger("plugin")
+        return logging.getLogger("plugin")
 
     def factory_reddit(self):
         """Sets up a complete OAuth Reddit session"""
@@ -132,32 +135,15 @@ class PluginBase(metaclass=ABCMeta):
         self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=self.handler)
         self.session.set_oauth_app_info(self.OA_APP_KEY, self.OA_APP_SECRET,
                                         'http://127.0.0.1:65010/authorize_callback')
+
         self.oa_refresh(force=True)
 
-    def factory_config(self):
+    @staticmethod
+    def factory_config():
         """Sets up a standard config-parser to bot_config.ini. Does not have to be used, but it is handy."""
-        self.config = ConfigParser()
-        self.config.read(resource_filename('config', 'bot_config.ini'))
-
-    def standard_setup(self, bot_name):
-        get = lambda x: self.config.get(bot_name, x)
-        self.DESCRIPTION = get('description')
-        self.IS_LOGGED_IN = self.config.getboolean(bot_name, 'is_logged_in')
-        options = [option for option, value in self.config.items(bot_name)]
-        check_values = ('app_key', 'app_secret', 'self_ignore', 'username')
-        if self.IS_LOGGED_IN:
-            if all(value in options for value in check_values):  # check if important keys are in
-                self.SELF_IGNORE = self.config.getboolean(bot_name, 'self_ignore')
-                self.USERNAME = get('username')
-                self.OA_APP_KEY = get('app_key')
-                self.OA_APP_SECRET = get('app_secret')
-                if 'refresh_token' in options:
-                    self.OA_REFRESH_TOKEN = get('refresh_token')
-                else:
-                    self._get_keys_manually()
-                self.factory_reddit()
-            else:
-                raise AttributeError('Config is incomplete, check for your keys.')
+        config = ConfigParser()
+        config.read(resource_filename('config', 'bot_config.ini'))
+        return config
 
     def _get_keys_manually(self):
         scopes = ['identity', 'account', 'edit', 'flair', 'history', 'livemanage', 'modconfig', 'modflair',
@@ -182,7 +168,7 @@ class PluginBase(metaclass=ABCMeta):
             f.close()
         self.oa_refresh(force=True)
 
-    @retry(HTTPException, logger=logger)
+    @retry(HTTPException)
     def _oa_refresh(self, force=False):
         assert self.OA_REFRESH_TOKEN and self.session, 'Cannot refresh, no refresh token or session is missing.'
         if force or time() > self.OA_VALID_UNTIL:
@@ -196,11 +182,11 @@ class PluginBase(metaclass=ABCMeta):
         """Calls _oa_refresh and tries to reset OAuth session if it fails several times."""
         try:
             self._oa_refresh(force)
-        except HTTPException as e:
+        except HTTPException:
             self.factory_reddit()
             self._oa_refresh(force)
 
-    @retry(HTTPException, logger=logger)
+    @retry(HTTPException)
     def get_unread_messages(self):
         """Runs down all unread messages of a Reddit session."""
         if hasattr(self, "session"):
