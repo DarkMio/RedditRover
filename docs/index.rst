@@ -31,8 +31,6 @@ Contents:
 
 
 .. include:: ../README.rst
-
-.. include:: ../README.rst
    :start-after: begin_installation
    :end-before: end_installation
 
