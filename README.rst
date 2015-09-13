@@ -14,7 +14,8 @@ content without having to mangle with all ins and outs of reddit, praw and API l
     $ RedditRover/main.py
 
 That will already do start the entire hosting and loading process - given you have already written a plugin,
-it will start shortly after to fire content to your plugin.
+it will start shortly after to fire content to your plugin. If there are no plugins so far, the bot will exit
+automatically.
 
 .. end_description
 
@@ -29,15 +30,14 @@ Running on Python 3+:
 
     pip install praw --upgrade
 
-All other dependencies are standard builtins. To be able to run this framework,
-you will need to run ``praw-multiprocess`` to avoid higher API usage than from Reddits guidelines.
+All other dependencies are standard builtins.
 
 .. end_installation
 
 Debugging
 ---------
-Bot features are written in Abstract PluginBase Classes. Inherit from it and execute one of the test functions:
-``test_single_submission(submission_id)``, ``test_single_comment(comment_id)`` or ``__test_single_thing(thing_id)``.
+Bot features are written in Abstract ``PluginBase Classes``. Inherit from it and execute one of the test functions:
+``test_single_submission(submission_id)``, ``test_single_comment(comment_id)`` or ``_test_single_thing(thing_id)``.
 Other than that, use atomic tests of your features however you please. Instantiating a plugin on its own works and
 supposed to test your features. Read into the documentation to get a detailed guide how this bot works and what you bot has to do.
 
@@ -47,8 +47,9 @@ This bot is now again under development. Way less complex code, more segmentatio
 
 .. code-block:: html
 
-    v0.7: No more praw-OAuth2Util, strengthening the framework, resolving major issues
+    v0.8: Custom handler, providing huge speedups, retry decorators, refactoring, close to initial release
     --------------------------------------------------------------------------------------------------------------
+    v0.7: No more praw-OAuth2Util, strengthening the framework, resolving major issues
     v0.6: Recode of the bot. A trillion of new features, which I will document soon
     v0.5: Added more bots - and then it kept fucking up.
     v0.4: Should now load infinite amounts of links, represent them with the website title and respond accordingly.
@@ -64,17 +65,14 @@ Planned features & work in progress
 - Debugger-Features and startup commands.
 - Rewriting some chunks of the Massdrop-Plugin, it's nesting and separation of concerns is horrible currently.
 
-Planned Massdrop Features
-+++++++++++++++++++++++++
-- Unit Order Limit
-
 .. end_future
 
 .. begin_faq
 
 Help, questions, contribution
 -----------------------------
-Check out the `FAQ <https://github.com/DarkMio/Massdrop-Reddit-Bot/wiki/FAQ>`_, which should cover most issues at first. Feel free to mail me, even here on GitHub.
+Check out the `FAQ <https://github.com/DarkMio/Massdrop-Reddit-Bot/wiki/FAQ>`_, which should cover most issues.
+Pull Requests, emails and messages on Reddit are welcome.
 
 .. end_faq
 
