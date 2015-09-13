@@ -1,10 +1,10 @@
 Code Overview
 =============
 
-This documents the all important aspects of the framework. Some objects are hidden, for example ``_SingleLoggingFilter``,
-since they're part of the base logging system.
+This documents the all important aspects of the framework. Some objects are hidden, for example
+``_SingleLoggingFilter``, since they're part of the base logging system.
 
-``PluginBase``
+:mod:`PluginBase`
 ------------
 
 .. automodule:: core.baseclass
@@ -13,7 +13,7 @@ since they're part of the base logging system.
     :undoc-members:
     :exclude-members: _abc_cache, _abc_negative_cache, _abc_negative_cache_version, _abc_registry
 
-``RedditRover``
+:mod:`RedditRover`
 -------------
 
 .. automodule:: core.redditrover
@@ -21,7 +21,7 @@ since they're part of the base logging system.
     :undoc-members:
     :show-inheritance:
 
-``Database``
+:mod:`Database`
 ----------
 
     This is currently heavily work in progress.
@@ -31,7 +31,7 @@ since they're part of the base logging system.
     :undoc-members:
     :show-inheritance:
 
-``LogProvider``
+:mod:`LogProvider`
 -------------
 
 .. automodule:: core.logprovider
@@ -39,7 +39,7 @@ since they're part of the base logging system.
     :undoc-members:
     :show-inheritance:
 
-``MultiThreader``
+:mod:`MultiThreader`
 ---------------
 
 .. automodule:: core.multithreader
