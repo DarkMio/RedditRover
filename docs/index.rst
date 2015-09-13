@@ -1,5 +1,3 @@
-.. _main_page::
-
 RedditRover - the Reddit Multibot Framework
 ===========================================
 
