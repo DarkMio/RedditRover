@@ -5,7 +5,6 @@ Reddit Rover
 
 .. begin_description
 
-
 RedditRover is a bot modular bot framework that makes it easy to host all kinds of reddit bots at once.
 It is intended to make it easy for new and experienced Programmers to host a variety of bots that can react to Reddits
 content without having to mangle with all ins and outs of reddit, praw and API limitations. Running it is easy:
@@ -50,7 +49,7 @@ This bot is now again under development. Way less complex code, more segmentatio
 
     v0.7: No more praw-OAuth2Util, strengthening the framework, resolving major issues
     --------------------------------------------------------------------------------------------------------------
-    v0.6: Recode of the bot. A trillion of new features, which I will document soon™
+    v0.6: Recode of the bot. A trillion of new features, which I will document soon
     v0.5: Added more bots - and then it kept fucking up.
     v0.4: Should now load infinite amounts of links, represent them with the website title and respond accordingly.
     v0.3: Fixing behaviour with non-escaped chars in links and stopping the self-spam.
@@ -75,7 +74,7 @@ Planned Massdrop Features
 
 Help, questions, contribution
 -----------------------------
-Check out the `FAQ<https://github.com/DarkMio/Massdrop-Reddit-Bot/wiki/FAQ>`_, which should cover most issues at first. Feel free to mail me, even here on GitHub.
+Check out the `FAQ <https://github.com/DarkMio/Massdrop-Reddit-Bot/wiki/FAQ>`_, which should cover most issues at first. Feel free to mail me, even here on GitHub.
 
 .. end_faq
 
