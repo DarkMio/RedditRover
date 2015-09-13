@@ -1,33 +1,6 @@
 misc package
 ============
 
-Submodules
-----------
-
-misc.Colorcodes module
-----------------------
-
-.. automodule:: misc.Colorcodes
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-misc.ConfigWizard module
-------------------------
-
-.. automodule:: misc.ConfigWizard
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-misc.Config_Generation module
------------------------------
-
-.. automodule:: misc.Config_Generation
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 misc.mutliple_strings module
 ----------------------------
 
