@@ -64,9 +64,9 @@ class RedditRover:
         self.config.read(resource_filename('config', 'bot_config.ini'))
         self.multi_thread = MultiThreader()
         self.lock = self.multi_thread.get_lock()
-        self.database_update = DatabaseProvider()
-        self.database_cmt = DatabaseProvider()
-        self.database_subm = DatabaseProvider()
+        self.database_update = Database()
+        self.database_cmt = Database()
+        self.database_subm = Database()
         try:
             self.praw_handler = RoverHandler()
             self.load_responders()
@@ -132,7 +132,7 @@ class RedditRover:
             module = __import__(modname, fromlist="dummy")
             # every sub module has to have an object provider,
             # this makes importing the object itself easy and predictable.
-            module_object = module.init(DatabaseProvider(), self.praw_handler)
+            module_object = module.init(Database(), self.praw_handler)
             try:
                 if not isinstance(module_object, PluginBase):
                     raise ImportError('Module {} does not inherit from PluginBase class'.format(
@@ -245,7 +245,7 @@ class RedditRover:
                 try:
                     for thread in threads:
                         self.update_action(thread, responder)
-                    responder.get_unread_messages()
+                    responder.get_unread_messages()  # @TODO: Config mark_as_read
                 except Exception as e:
                     self.logger.error(traceback.print_exc())
                     self.logger.error("{} error: {} < {}".format(responder.BOT_NAME, e.__class__.__name__, e))
@@ -265,7 +265,7 @@ class RedditRover:
         :type responder: PluginBase
         """
         # reformat the entry from the database, so we can feed it directly into the update_procedure
-        thread_dict = {'thing_id': thread[0],
+        thread_dict = {'thing_id': responder.session.get_info(thread[0]),  # could be unsafe, but is immensely faster
                        'created': strptime(thread[2], '%Y-%m-%d %H:%M:%S'),
                        'lifetime': strptime(thread[3], '%Y-%m-%d %H:%M:%S'),
                        'last_updated': strptime(thread[4], '%Y-%m-%d %H:%M:%S'),
