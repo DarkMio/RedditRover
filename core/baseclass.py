@@ -66,10 +66,10 @@ class PluginBase(metaclass=ABCMeta):
     :type config: ConfigParser
     :vartype config: ConfigParser
     :ivar database: Session to database, can be None if not needed.
-    :type database: DatabaseProvider | None
-    :vartype database: DatabaseProvider | None
+    :type database: core.database.Database | None
+    :vartype database: Database | None
     :ivar handler: Specific handler given from the framework to keep API rate limits
-    :type handler: RedditRoverHandler
+    :type handler: core.handler.RedditRoverHandler
     :vartype handler: RedditRoverHandler
     """
 
@@ -98,15 +98,18 @@ class PluginBase(metaclass=ABCMeta):
                         self.OA_REFRESH_TOKEN = get('refresh_token')
                     else:
                         self._get_keys_manually()
-                    self.factory_reddit()
+                    self.factory_reddit(True)
                 else:
                     raise AttributeError('Config is incomplete, check for your keys.')
+            else:
+                self.factory_reddit()
 
     def integrity_check(self):
         """Checks if the most important variables are initialized properly.
 
         :return: True if possible
         :rtype: bool
+        :raise: AssertionError
         """
         assert hasattr(self, 'DESCRIPTION') and hasattr(self, 'BOT_NAME') and hasattr(self, 'IS_LOGGED_IN'), \
             "Failed constant variable integrity check. Check your object and its initialization."
@@ -125,27 +128,47 @@ class PluginBase(metaclass=ABCMeta):
 
     @staticmethod
     def factory_logger():
-        """Sets up a logger for the plugin."""
+        """
+        Returns a Logger named 'plugin'.
+
+        :return: Unchilded Logger 'Plugin'
+        :rtype: logging.Logger
+        """
         return logging.getLogger("plugin")
 
-    def factory_reddit(self):
-        """Sets up a complete OAuth Reddit session"""
-        assert self.DESCRIPTION and self.handler and self.OA_APP_KEY and self.OA_APP_SECRET, \
-            "Necessary attributes are not set for this function."
-        self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=self.handler)
-        self.session.set_oauth_app_info(self.OA_APP_KEY, self.OA_APP_SECRET,
-                                        'http://127.0.0.1:65010/authorize_callback')
+    def factory_reddit(self, login=False):
+        """
+        Sets the class attribute 'session' to a Reddit session and authenticates with it if the parameter is set.
 
-        self.oa_refresh(force=True)
+        :param login: Decides if you want the session logged in or not.
+        :type login: bool
+        :raise: AssertionError
+        """
+        self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=self.handler)
+        if login:
+            assert self.DESCRIPTION and self.handler and self.OA_APP_KEY and self.OA_APP_SECRET, \
+                "Necessary attributes are not set for this function."
+            self.session.set_oauth_app_info(self.OA_APP_KEY, self.OA_APP_SECRET,
+                                            'http://127.0.0.1:65010/authorize_callback')
+            self.oa_refresh(force=True)
 
     @staticmethod
     def factory_config():
-        """Sets up a standard config-parser to bot_config.ini. Does not have to be used, but it is handy."""
+        """
+        Sets up a standard config-parser to bot_config.ini. Does not have to be used, but it is handy.
+
+        :returns: Set up ConfigParser object, reading `/config/bot_config.ini`.
+        :rtype: ConfigParser
+        """
         config = ConfigParser()
         config.read(resource_filename('config', 'bot_config.ini'))
         return config
 
     def _get_keys_manually(self):
+        """
+        Method to get Access and Refresh Keys manually. Has to be run through once when the credentials are set up,
+        writes then the refresh key into the config and logs the session in.
+        """
         scopes = ['identity', 'account', 'edit', 'flair', 'history', 'livemanage', 'modconfig', 'modflair',
                   'modlog', 'modothers', 'modposts', 'modself', 'modwiki', 'mysubreddits', 'privatemessages', 'read',
                   'report', 'save', 'submit', 'subscribe', 'vote', 'wikiedit', 'wikiread']
@@ -170,38 +193,58 @@ class PluginBase(metaclass=ABCMeta):
 
     @retry(HTTPException)
     def _oa_refresh(self, force=False):
+        """
+        Main function to refresh OAuth access token.
+
+        :param force: Forces to refresh the access token
+        :type force: bool
+        """
         assert self.OA_REFRESH_TOKEN and self.session, 'Cannot refresh, no refresh token or session is missing.'
         if force or time() > self.OA_VALID_UNTIL:
             token_dict = self.session.refresh_access_information(self.OA_REFRESH_TOKEN)
             self.OA_ACCESS_TOKEN = token_dict['access_token']
             self.OA_VALID_UNTIL = time() + self.OA_TOKEN_DURATION
             self.session.set_access_credentials(**token_dict)
-            return
 
     def oa_refresh(self, force=False):
-        """Calls _oa_refresh and tries to reset OAuth session if it fails several times."""
+        """
+        Calls _oa_refresh and tries to reset OAuth credentials if it fails several times.
+
+        :param force: Forces to refresh the access token
+        :type force: bool
+        """
         try:
             self._oa_refresh(force)
         except HTTPException:
+            # Good news: This works. Bad news: I don't remember why the same keys suddenly work.
             self.factory_reddit()
-            self._oa_refresh(force)
+            self._oa_refresh(True)
 
     @retry(HTTPException)
-    def get_unread_messages(self):
-        """Runs down all unread messages of a Reddit session."""
+    def get_unread_messages(self, mark_as_read=True):
+        """
+        Runs down all unread messages of this logged in plugin and if wanted, marks them as read. This should always the
+        case, otherwise a verbose bot with many messages has to run down a long list of mails every time the bot gets
+        rebooted.
+
+        :param mark_as_read: Decides if the all messages get marked as read (speeds up the message reading every time)
+        :type mark_as_read: bool
+        """
         if hasattr(self, "session"):
             self.oa_refresh()
             try:
                 msgs = self.session.get_unread()
                 for msg in msgs:
-                    msg.mark_as_read()
+                    if mark_as_read:
+                        msg.mark_as_read()
                     self.on_new_message(msg)
             except AssertionError:
                 pass
 
     def standard_ban_procedure(self, message, subreddit_banning_allowed=True, user_banning_allowed=True):
-        """An exemplary method that bans users and subs and then replies them that the bot has banned.
-           Needs a reddit session, oauth and a database pointer to function properly.
+        """
+        An exemplary method that bans users and subs and then replies them that the bot has banned.
+        Needs a reddit session, oauth and a database pointer to function properly.
 
         :param message: a single praw message object
         :type message: praw.objects.Message
@@ -209,7 +252,6 @@ class PluginBase(metaclass=ABCMeta):
         :type subreddit_banning_allowed: bool
         :param user_banning_allowed: can block out the banning of users
         :type user_banning_allowed: bool
-        :return:
         """
         if message.author:
             author, human = message.author.name.lower(), True
@@ -239,9 +281,14 @@ class PluginBase(metaclass=ABCMeta):
                                   "\n\nHave a nice day!".format(sb, bn))
                     self.logger.info("Banned /r/{} from {} on message request".format(sb, bn))
 
-    def __test_single_thing(self, thing_id):
-        """If you're used to reddit thing ids, you can use this method directly.
-           However, if that is not the case, use test_single_submission and test_single_comment."""
+    def _test_single_thing(self, thing_id):
+        """
+        If you feel confident enough to mangle with thing_ids of Reddit, you can use this method to load a specific
+        thing to test out your bot. The plugin will behave exactly as it would get the same thing from the framework.
+
+        :param thing_id: The direct thing_id from Reddit, which you can get by looking into the permalink.
+        :type thing_id: str
+        """
         r = praw.Reddit(user_agent='Bot Framework Test for a single submission.')
         thing = r.get_info(thing_id=thing_id)
         if type(thing) is praw.objects.Submission:
@@ -255,49 +302,118 @@ class PluginBase(metaclass=ABCMeta):
             self.execute_comment(thing)
 
     def test_single_submission(self, submission_id):
-        """Use this method to test you bot manually on submissions."""
-        self.__test_single_thing("t3_{}".format(submission_id))
+        """
+        Use this method to test your plugin manually for single submissions. Behaves like it would in the framework.
+
+        :param submission_id: Needs the id from Reddit, which you can get from the permalink: https://redd.it/**3iyxxt**
+        :type submission_id: str
+        """
+        self._test_single_thing("t3_{}".format(submission_id))
 
     def test_single_comment(self, comment_id):
-        """Use this method to test your bot manually on a single comment."""
-        self.__test_single_thing("t1_{}".format(comment_id))
-
-    def to_update(self, response_object, lifetime):
-        """This method is preferred if you want a submission or comment to be updated.
-
-            :param response_object: PRAW returns on a posted submission or comment the resulting object.
-            :type response_object: praw.objects.Submission or praw.objects.Comment
-            :param lifetime: The exact moment in unixtime utc+0 when this object will be invalid (update cycle)
-            :type lifetime: unixtime in seconds
         """
+        Use this method to test your plugin manually for single comments. Behaves like it would in the framework.
+
+        :param comment_id: Needs the id from Reddit, which you can get from the permalink:
+                           https://reddit.com/comments/3iyxxt/_/**cukvign**
+        :type comment_id: str
+        """
+        self._test_single_thing("t1_{}".format(comment_id))
+
+    def to_update(self, response_object, lifetime, interval):
+        """
+        This method is preferred if you want a submission or comment to be updated. It writes the important information
+        into the database, which later will get queried into the
+
+        :param response_object: PRAW returns on a posted submission or comment the resulting object.
+        :type response_object: praw.objects.Submission | praw.objects.Comment
+        :param lifetime: The exact moment in unixtime in seconds when this object will be invalid (update cycle)
+        :type lifetime: int
+        :params interval: The interval after what time of updating this should be queried again.
+        :type interval: int
+        """
+        obj = response_object
         if not self.database:
             self.logger.error('{} does not have a valid database connection.'.format(self.BOT_NAME))
         else:
-            if isinstance(response_object, praw.objects.Submission) or isinstance(praw.objects.Comment):
-                self.database.insert_into_update(response_object.fullname, self.BOT_NAME, lifetime)
+            if isinstance(obj, praw.objects.Submission) or isinstance(obj, praw.objects.Comment):
+                self.database.insert_into_update(response_object.fullname, self.BOT_NAME, lifetime, interval)
             else:
                 self.logger.error('response_object has an invalid object type.')
 
     @abstractmethod
     def execute_submission(self, submission):
+        """
+        Function for handling a submission with a textbody (self.post)
+
+        :param submission: A submission with a title and textbody.
+        :type submission: praw.objects.Submission
+        :return: **True** if the plugin reacted on in, **False** or **None** if he didn't.
+        :rtype: bool | None
+        """
         pass
 
     @abstractmethod
     def execute_link(self, link_submission):
+        """
+        Function for handling a link submission.
+
+        :param link_submission: A submission with title and an url.
+        :type link_submission: praw.objects.Submission
+        :return: **True** if the plugin reacted on in, **False** or **None** if he didn't.
+        :rtype: bool | None
+        """
         pass
 
     @abstractmethod
     def execute_titlepost(self, title_only):
+        """
+        Function for handling a link submission.
+
+        :param title_only: A submission with only a title. No textbody nor url.
+        :type title_only: praw.objects.Submission
+        :return: **True** if the plugin reacted on in, **False** or **None** if he didn't.
+        :rtype: bool | None
+        """
         pass
 
     @abstractmethod
     def execute_comment(self, comment):
+        """
+        Function for handling a comment.
+
+        :param comment: A single comment. :warn: Comments can have empty text bodies.
+        :type comment: praw.objects.Comment
+        :return: **True** if the plugin reacted on in, **False** or **None** if he didn't.
+        :rtype: bool | None
+        """
         pass
 
     @abstractmethod
-    def update_procedure(self, thing_id, created, lifetime, last_updated, interval):
+    def update_procedure(self, thing, created, lifetime, last_updated, interval):
+        """
+        Function that gets called from the update thread when a previously saved thread from `self.to_update` reached
+        its next interval.
+
+        :param thing: concrete loaded Comment or Submission
+        :type thing: praw.objects.Submission | praw.objects.Comment
+        :param created: unix timestamp when this `thing` was created.
+        :type created: float
+        :param lifetime: unix timestamp until this update-submission expires.
+        :type lifetime: float
+        :param last_updated: unix timestamp when it was updated the last time.
+        :type lifetime: float
+        :param interval: interval in seconds how often this `thing` should be updated.
+        :type interval: int
+        """
         pass
 
     @abstractmethod
     def on_new_message(self, message):
+        """
+        Method gets called when there is a new message for this plugin.
+
+        :param message: Message Object from PRAW, contains author, title, text for example.
+        :type message: praw.objects.Message
+        """
         pass
