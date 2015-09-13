@@ -9,13 +9,14 @@ core.BaseClass module
 
 .. automodule:: core.baseclass
     :members:
+    :private-members:
     :undoc-members:
     :show-inheritance:
 
-core.DatabaseProvider module
-----------------------------
+core.Database module
+--------------------
 
-.. automodule:: core.databaseprovider
+.. automodule:: core.database
     :members:
     :undoc-members:
     :show-inheritance:
