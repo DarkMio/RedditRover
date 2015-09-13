@@ -24,7 +24,6 @@ Contents:
    pages/writing_a_plugin
    pages/bot_config
    pages/core
-   pages/plugins
    pages/misc
 
 * :ref:`modindex`
