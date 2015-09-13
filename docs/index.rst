@@ -1,3 +1,5 @@
+.. _main_page::
+
 RedditRover - the Reddit Multibot Framework
 ===========================================
 
@@ -12,6 +14,7 @@ content without having to mangle with all ins and outs of reddit, praw and API l
 That will already do start the entire hosting and loading process - given you have already written a plugin,
 it will start shortly after to fire content to your plugin.
 
+
 Contents:
 ---------
 
@@ -19,10 +22,15 @@ Contents:
    :maxdepth: 2
 
    pages/writing_a_plugin
-   pages/bot_config.ini
+   pages/bot_config
    pages/core
    pages/plugins
    pages/misc
+
+* :ref:`modindex`
+
+
+.. include:: ../README.rst
 
 .. include:: ../README.rst
    :start-after: begin_installation
@@ -31,21 +39,3 @@ Contents:
 .. include:: ../README.rst
    :start-after: begin_faq
    :end-before: end_faq
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-
-Some testing
-============
-
-:mod:`core` Package
--------------------
-
-.. autoclass:: core.redditrover.RedditRover
-    :private-members:
-    :members:
-    :undoc-members:
-
