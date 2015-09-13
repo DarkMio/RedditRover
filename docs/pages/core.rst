@@ -32,6 +32,7 @@ This documents the all important aspects of the framework. Some objects are hidd
 
 .. automodule:: core.database
     :members:
+    :private-members:
     :undoc-members:
     :show-inheritance:
 

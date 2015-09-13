@@ -14,10 +14,17 @@ class Database:
        - **modules**:         persistent module storage
        - **userbans**:        a table to ban users from being able to trigger certain plugins
        - **subbans**:         a table to ban subreddits from being able to trigger certain plugins
+
+    :ivar logger: A database specific database logger. Is currently missing debug-messages for database actions.
+    :type logger: logging.Logger
+    :vartype logger: logging.Logger
+    :ivar db: A connection to the SQLite database: ``/config/storage.db``
+    :type db: sqlite3.Connection
+    :vartype db: sqlite3.Connection
+    :ivar cur: Cursor to interface with the database.
+    :type cur: sqlite3.Cursor
+    :vartype cur: sqlite3.Cursor
     """
-    logger = None   # Logger
-    db = None       # Reference to DB session
-    cur = None      # Reference to DB cursor
 
     def __init__(self):
         self.logger = logging.getLogger("database")
