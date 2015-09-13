@@ -4,13 +4,27 @@ import time
 
 
 class MultiThreader:
-    """Throw bound methods at it and it joins you threads together."""
-    threads = list()         # Holds all threads together.
+    """
+    The MultiThreader object has simple syntax to keep many processes in simple threads that are daemonic, therefore
+    will be killed when the main process is killed too.
+
+    :ivar threads: A list of all threads to coordinate them.
+    :type threads: list
+    :ivar lock: A Lock that can be acquired from all instances to share that specific thread lock.
+    :type lock: threading.Lock
+    """
 
     def __init__(self):
+        self.threads = []
         self.lock = threading.Lock()
 
     def go(self, *args):
+        """
+        Main method to get all threads together. First you call `go`, then `join_threads`. The arguments for this have
+        to be a list, where [`function`, `arguments`]
+
+        :param args: All threads planned to be threaded.
+        """
         for line in args:
             if len(line) == 1:
                 thread = threading.Thread(target=line[0])
@@ -22,37 +36,16 @@ class MultiThreader:
 
     def join_threads(self):
         """
-        Join threads in interruptable fashion.
-        From http://stackoverflow.com/a/9790882/145400
+        Join all threads given by `go` in an interruptable fashion.
         """
         for t in self.threads:
             while t.isAlive():
                 t.join(5)
 
     def get_lock(self):
-        """Returns a threading RLock object
+        """
+        Returns the Lock object for this instance and main thread.
 
-        :return: threading.RLock()
+        :return: threading.Lock
         """
         return self.lock
-
-    @staticmethod
-    def repeater(thread):
-        """Test method for tinkering with threading."""
-        global G
-        while True:
-            i = G
-            print("Thread {}: i = {}".format(thread, i))
-            G += 1
-            time.sleep(5)
-
-
-if __name__ == "__main__":
-    global G
-    G = 1
-    threader = MultiThreader()
-    threader.go([threader.repeater, 1], [threader.repeater, 2], [threader.repeater, 3])
-    try:
-        threader.join_threads()
-    except KeyboardInterrupt as e:
-        print("Exiting.")
