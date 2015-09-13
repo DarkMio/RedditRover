@@ -21,6 +21,8 @@ class PluginBase(metaclass=ABCMeta):
 
     .. centered:: Attributes with an asterisk (*) do not have to be set without being logged in
 
+    .. centered:: Methods with an question mark (?) have to be implemented and overwritten by your plugin.
+
     :ivar DESCRIPTION: user_agent: describes the bot / function / author
     :type DESCRIPTION: str
     :vartype DESCRIPTION: str
@@ -344,7 +346,7 @@ class PluginBase(metaclass=ABCMeta):
     @abstractmethod
     def execute_submission(self, submission):
         """
-        Function for handling a submission with a textbody (self.post)
+        **?** Function for handling a submission with a textbody (self.post)
 
         :param submission: A submission with a title and textbody.
         :type submission: praw.objects.Submission
@@ -356,7 +358,7 @@ class PluginBase(metaclass=ABCMeta):
     @abstractmethod
     def execute_link(self, link_submission):
         """
-        Function for handling a link submission.
+        **?** Function for handling a link submission.
 
         :param link_submission: A submission with title and an url.
         :type link_submission: praw.objects.Submission
@@ -368,7 +370,7 @@ class PluginBase(metaclass=ABCMeta):
     @abstractmethod
     def execute_titlepost(self, title_only):
         """
-        Function for handling a link submission.
+        **?** Function for handling a link submission.
 
         :param title_only: A submission with only a title. No textbody nor url.
         :type title_only: praw.objects.Submission
@@ -380,7 +382,7 @@ class PluginBase(metaclass=ABCMeta):
     @abstractmethod
     def execute_comment(self, comment):
         """
-        Function for handling a comment.
+        **?** Function for handling a comment.
 
         :param comment: A single comment. :warn: Comments can have empty text bodies.
         :type comment: praw.objects.Comment
@@ -392,8 +394,8 @@ class PluginBase(metaclass=ABCMeta):
     @abstractmethod
     def update_procedure(self, thing, created, lifetime, last_updated, interval):
         """
-        Function that gets called from the update thread when a previously saved thread from `self.to_update` reached
-        its next interval.
+        **?** Function that gets called from the update thread when a previously saved thread from `self.to_update`
+        reached its next interval.
 
         :param thing: concrete loaded Comment or Submission
         :type thing: praw.objects.Submission | praw.objects.Comment
@@ -411,7 +413,7 @@ class PluginBase(metaclass=ABCMeta):
     @abstractmethod
     def on_new_message(self, message):
         """
-        Method gets called when there is a new message for this plugin.
+        **?** Method gets called when there is a new message for this plugin.
 
         :param message: Message Object from PRAW, contains author, title, text for example.
         :type message: praw.objects.Message
