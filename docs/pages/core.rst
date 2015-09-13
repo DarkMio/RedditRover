@@ -1,11 +1,11 @@
-core package
-============
+Code Overview
+=============
 
-Submodules
-----------
+This documents the all important aspects of the framework. Some objects are hidden, for example `_SingleLoggingFilter`,
+since they're part of the base logging system.
 
-core.BaseClass module
----------------------
+`PluginBase`
+------------
 
 .. automodule:: core.baseclass
     :members:
@@ -13,43 +13,36 @@ core.BaseClass module
     :undoc-members:
     :exclude-members: _abc_cache, _abc_negative_cache, _abc_negative_cache_version, _abc_registry
 
-core.Database module
---------------------
-
-.. automodule:: core.database
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-core.LogProvider module
------------------------
-
-.. automodule:: core.logprovider
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-core.MultiThreader module
--------------------------
-
-.. automodule:: core.multithreader
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-core.RedditRover module
------------------------
+`RedditRover`
+-------------
 
 .. automodule:: core.redditrover
     :members:
     :undoc-members:
     :show-inheritance:
 
+`Database`
+----------
 
-Module contents
+    This is currently heavily work in progress.
+
+.. automodule:: core.database
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+`LogProvider`
+-------------
+
+.. automodule:: core.logprovider
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+`MultiThreader`
 ---------------
 
-.. automodule:: core
+.. automodule:: core.multithreader
     :members:
     :undoc-members:
     :show-inheritance:
