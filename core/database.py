@@ -4,14 +4,17 @@ import sqlite3
 from pkg_resources import resource_filename
 
 
-class DatabaseProvider:
-    """This object provides a full set of features to interface with a basic session database,
+class Database:
+    """
+    This object provides a full set of features to interface with a basic session database,
        which includes following tables:
-       - storage        | saves the state of the bot and helps against double posting
-       - update_threads | storage to store thing_ids which have to be updated by your plugin
-       - modules        | persistent module storage
-       - userbans       | a table to ban users from being able to trigger certain plugins
-       - subbans        | a table to ban subreddits from being able to trigger certain plugins"""
+
+       - **storage**:         saves the state of the bot and helps against double posting
+       - **update_threads**:  storage to store thing_ids which have to be updated by your plugin
+       - **modules**:         persistent module storage
+       - **userbans**:        a table to ban users from being able to trigger certain plugins
+       - **subbans**:         a table to ban subreddits from being able to trigger certain plugins
+    """
     logger = None   # Logger
     db = None       # Reference to DB session
     cur = None      # Reference to DB cursor
@@ -310,7 +313,7 @@ class DatabaseProvider:
 
 
 if __name__ == "__main__":
-    db = DatabaseProvider()
+    db = Database()
     thing_id = "t2_c384fd"
     module = "MassdropBot"
     user = "MioMoto"

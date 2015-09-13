@@ -1,6 +1,6 @@
 # coding=utf
 from .baseclass import PluginBase
-from .databaseprovider import DatabaseProvider
+from .database import Database
 from .handlers import RoverHandler
 from .logprovider import setup_logging
 from .multithreader import MultiThreader
