@@ -4,10 +4,8 @@ from time import sleep
 
 
 def retry(exception_to_check, tries=4, delay=3, backoff=2):
-    """Retry calling the decorated function using an exponential backoff.
-
-    http://www.saltycrane.com/blog/2009/11/trying-out-retry-decorator-python/
-    original from: http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
+    """
+    Retry calling the decorated function using an exponential backoff.
 
     :param exception_to_check: the exception to check. may be a tuple of
         exceptions to check
@@ -26,25 +24,23 @@ def retry(exception_to_check, tries=4, delay=3, backoff=2):
 
         @wraps(f)
         def f_retry(*args, **kwargs):
-            obj = args[0]
-            if hasattr(obj, 'logger'):
+            logger, obj = None, None
+            if args:
+                obj = args[0]
+            if obj and hasattr(obj, 'logger'):
                 logger = obj.logger
-            else:
-                logger = None
             mdelay = delay
             for x in range(tries):
                 try:
                     return f(*args, **kwargs)
                 except exception_to_check as e:
-                    msg = "%s, Retrying in %d seconds..." % (str(e), mdelay)
-                    if logger:
-                        logger.warning(msg)
-                    else:
-                        print(msg)
+                    obj_msg = ('', '{}.'.format(obj.__class__.__name__))[obj is not None]
+                    msg = "{}{} encountered: {}: {}  -  retrying in {} seconds.".format(obj_msg, f.__name__,
+                                                                                        e.__class__.__name__, e, mdelay)
+                    if logger: logger.warning(msg)
+                    else: print(msg)
                     sleep(mdelay)
                     mdelay *= backoff
             return f(*args, **kwargs)
-
         return f_retry  # true decorator
-
     return deco_retry

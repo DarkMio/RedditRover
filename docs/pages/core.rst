@@ -46,3 +46,14 @@ This documents the all important aspects of the framework. Some objects are hidd
     :members:
     :undoc-members:
     :show-inheritance:
+
+:mod:`Handlers`
+---------------
+
+.. warning:: PRAW features two more handlers that are not currently covered by this bot. Their architecture is entirely
+             different, but RedditRovers' new Handler is faster than the old one.
+
+.. automodule:: core.handlers
+    :members:
+    :undoc-member:
+    :show-inheritance:

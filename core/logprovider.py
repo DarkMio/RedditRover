@@ -8,7 +8,7 @@ from time import mktime
 from calendar import timegm
 from logging.handlers import BaseRotatingHandler
 
-FORMAT = '%(asctime)s [%(levelname)s] -- [%(name)s:%(module)s/%(funcName)s]-- %(message)s'
+FORMAT = '%(asctime)s [%(levelname)s] -- [%(name)s:%(module)s/%(funcName)s] -- %(message)s'
 CHAT_FORMAT = '[%(asctime)] %(message)'
 LOGGING_LEVELS = {"NOTSET": logging.NOTSET, "DEBUG": logging.DEBUG,
                   "INFO": logging.INFO, "WARNING": logging.WARNING,

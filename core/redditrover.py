@@ -265,12 +265,12 @@ class RedditRover:
         :type responder: PluginBase
         """
         # reformat the entry from the database, so we can feed it directly into the update_procedure
-        thread_dict = {'thing_id': responder.session.get_info(thread[0]),  # could be unsafe, but is immensely faster
+        thread_dict = {'thing': responder.session.get_info(thing_id=thread[0]),  # could be unsafe, but is immensely faster
                        'created': strptime(thread[2], '%Y-%m-%d %H:%M:%S'),
                        'lifetime': strptime(thread[3], '%Y-%m-%d %H:%M:%S'),
                        'last_updated': strptime(thread[4], '%Y-%m-%d %H:%M:%S'),
                        'interval': thread[5]}
-        self.database_update.update_timestamp_in_update(thread_dict['thing_id'], responder.BOT_NAME)
+        self.database_update.update_timestamp_in_update(thread[0], responder.BOT_NAME)
         responder.update_procedure(**thread_dict)
 
 
