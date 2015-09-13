@@ -11,7 +11,7 @@ core.BaseClass module
     :members:
     :private-members:
     :undoc-members:
-    :show-inheritance:
+    :exclude-members: _abc_cache, _abc_negative_cache, _abc_negative_cache_version, _abc_registry
 
 core.Database module
 --------------------
