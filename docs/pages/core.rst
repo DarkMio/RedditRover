@@ -1,5 +1,5 @@
-Core: Code Overview
-===================
+:mod:`Core`: Code Overview
+==========================
 
 This documents the all important aspects of the framework. Some objects are hidden, for example
 ``_SingleLoggingFilter``, since they're part of the base logging system.
