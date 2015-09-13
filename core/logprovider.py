@@ -18,13 +18,29 @@ DAY = 60 * 60 * 24  # Seconds in a day
 
 
 # noinspection PyMissingConstructor
-class SingleLevelFilter(logging.Filter):
-    """Filters a certain logging-level out - used to split error messages to stderr instead of writing into stdout."""
+class _SingleLevelFilter(logging.Filter):
+    """
+    Filters a certain logging-level out - used to split error messages to stderr instead of writing into stdout.
+
+    :ivar passlevel: The logging level from where the split should occur.
+    :type passlevel: str | int
+    :vartype passlevel: str | int
+    :ivar reject: Sets if these messages should be displayed in that handler.
+    :type reject: bool
+    :vartype reject: bool
+    """
     def __init__(self, passlevel, reject):
         self.passlevel = passlevel
         self.reject = reject
 
     def filter(self, record):
+        """
+        Checks if it has to be filtered or not.
+
+        :param record: a logger message
+        :return: **True** if filtered, else **False**.
+        :rtype: bool
+        """
         if self.reject:
             return record.levelno != self.passlevel
         else:
@@ -32,8 +48,18 @@ class SingleLevelFilter(logging.Filter):
 
 
 def setup_logging(log_level="INFO", console_log_level=None, log_path_format="%Y/%m/%Y-%m-%d.log"):
-    """Thanks to Renol: https://github.com/RenolY2/Renol-IRC-rv2
-       This logging handler is quite powerful and nicely formatted."""
+    """
+    Thanks to Renol: https://github.com/RenolY2/Renol-IRC-rv2 - This logging handler is quite powerful and
+    nicely formatted. This sets up the main Logger and needed to receive bot and plugin messages. If you're testing
+    a single plugin it is recommended to execute this.
+
+    :param log_level: Level on which the logger operates
+    :type log_level: str
+    :param console_log_level: Determines the console log level, which is usually the same as `log_level`
+    :type console_log_level: str
+    :param log_path_format: Path-Format for `/logs/`, supports sub folders
+    :type log_path_format: str
+    """
     null_handler = logging.NullHandler()
     logging.basicConfig(level=log_level, handlers=[null_handler])
 
@@ -46,14 +72,14 @@ def setup_logging(log_level="INFO", console_log_level=None, log_path_format="%Y/
     logging_format = logging.Formatter(FORMAT, datefmt=TIME_FORMAT)
 
     # Set up the handler for logging to console
-    filter_info = SingleLevelFilter(logging.INFO, True)
+    filter_info = _SingleLevelFilter(logging.INFO, True)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(console_log_level)
     console_handler.setFormatter(logging_format)
     console_handler.addFilter(filter_info)
 
     # Separating error and regular output
-    not_filter_info = SingleLevelFilter(logging.INFO, False)
+    not_filter_info = _SingleLevelFilter(logging.INFO, False)
     standard_handler = logging.StreamHandler(sys.__stdout__)
     standard_handler.setLevel(console_log_level)
     standard_handler.setFormatter(logging_format)
@@ -90,7 +116,7 @@ def setup_logging(log_level="INFO", console_log_level=None, log_path_format="%Y/
     bot_logger.info("RedditRover Logger initialized.")
     logging.getLogger("requests").setLevel(logging.WARNING)
 
-    offset, tzname = local_time_offset()
+    offset, tzname = _local_time_offset()
     if offset >= 0:
         offset = "+" + str(offset)
     else:
@@ -99,9 +125,11 @@ def setup_logging(log_level="INFO", console_log_level=None, log_path_format="%Y/
     return bot_logger
 
 
-def local_time_offset():
-    """Returns UTC offset and name of time zone at current time
-       Based on http://stackoverflow.com/a/13406277"""
+def _local_time_offset():
+    """
+    Returns UTC offset and name of time zone at current time
+    Based on http://stackoverflow.com/a/13406277
+    """
     t = time.time()
     if time.localtime(t).tm_isdst and time.daylight:
         return -time.altzone / 3600, time.tzname[1]
@@ -110,6 +138,16 @@ def local_time_offset():
 
 
 class DailyRotationHandler(BaseRotatingHandler):
+    """
+    This handler swaps over logs after a day. Quirky method names result from inheriting.
+
+    :ivar path_format: Path-Format for `/logs/`, supports sub folders
+    :type path_format: str
+    :vartype path_format: str
+    :ivar utc: Timestamp in utc
+    :type utc: bool
+    :vartype utc: bool
+    """
     def __init__(self, pathformat="%Y/%m/%Y-%m-%d.log", utc=False, encoding=None, delay=False):
         self.path_format = pathformat
         self.utc = utc
@@ -121,6 +159,13 @@ class DailyRotationHandler(BaseRotatingHandler):
                                      encoding=encoding, delay=delay)
 
     def shouldRollover(self, record):
+        """
+        Checks if a rollover has to be done
+
+        :param record: Logger message
+        :return: Boolean to determine if or if not.
+        :rtype: bool
+        """
         now = self._get_time()
         day = self._get_days_since_epoch(now)
         # The no_rollover attribute can be set when writing a log entry
@@ -135,6 +180,9 @@ class DailyRotationHandler(BaseRotatingHandler):
             return False
 
     def doRollover(self):
+        """
+        Does the rollover.
+        """
         new_filename = os.path.abspath(self._format_time())
         if self.stream:
             self.stream.close()
@@ -145,21 +193,40 @@ class DailyRotationHandler(BaseRotatingHandler):
 
     @staticmethod
     def _create_dirs(file_path):
+        """
+        Creates the dirs if needed.
+        """
         directories, filename = os.path.split(file_path)
         os.makedirs(directories, exist_ok=True)
 
     def _get_time(self):
+        """
+        Gets timezone time or utc time, based on the utc flag on attribute `utc`.
+        """
         if self.utc:
             return time.gmtime()
         else:
             return time.localtime()
 
     def _format_time(self, struct_time=None):
+        """
+        Formats the time
+
+        :param struct_time: time formatter
+        :return: Formatted time
+        :rtype: time.strftime
+        """
         if struct_time is None:
             struct_time = self._get_time()
         return time.strftime(self.path_format, struct_time)
 
     def _get_days_since_epoch(self, struct_time):
+        """
+        More time functions
+
+        :param struct_time: the struct_time used to calculate epoch.
+        :return: formatted time
+        """
         if self.utc:
             return timegm(struct_time) // DAY
         else:

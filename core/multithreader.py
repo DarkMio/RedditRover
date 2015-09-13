@@ -10,8 +10,10 @@ class MultiThreader:
 
     :ivar threads: A list of all threads to coordinate them.
     :type threads: list
+    :vartype threads: list
     :ivar lock: A Lock that can be acquired from all instances to share that specific thread lock.
     :type lock: threading.Lock
+    :vartype threads: list
     """
 
     def __init__(self):
