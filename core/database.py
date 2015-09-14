@@ -41,7 +41,12 @@ class Database:
         self.logger.warning("DB connection has been closed.")
 
     def database_init(self):
-        """Initializes the database and creates necessary tables."""
+        """
+        Initialized the database, checks manually (because: why not?) if those tables already exist and if not, creates
+        the necessary tables. You can modify the PRAGMA or add tables however you please, as long as you keep the order
+        of these tables (their columns) intact. Some SQL statements are not completely explicit to be independent on
+        order.
+        """
         info = lambda x: self.logger.info("Table '{}' had to be generated.".format(x))
 
         if not self._database_check_if_exists('storage'):
@@ -78,17 +83,36 @@ class Database:
             info('subbans')
 
     def _database_check_if_exists(self, table_name):
-        """Helper method, Internal check if a table exists, refrain from using it."""
+        """
+        Helper method to check if a certain table (by name) exists. Refrain from using it if you're not adding new
+        tables.
+        :param table_name: Name of the table you want to check if it exists.
+        :type table_name: str
+        :return: Tuple of the table name, empty if it doesn't exist.
+        :rtype: tuple
+        """
         self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name=(?)', (table_name,))
         return self.cur.fetchone()
 
     def insert_into_storage(self, thing_id, module):
-        """Stores a certain thing (comment or submission) into the storage, which is for session consistency."""
+        """
+        Stores a certain thing (id of comment or submission) into the storage, which is for the session consistency.
+
+        :param thing_id: Unique thing_id from a comment or submission.
+        :type thing_id: str
+        :param module: A string naming your plugin.
+        :type module: str
+        """
         self.cur.execute('INSERT INTO storage VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name=(?)), '
                          'CURRENT_TIMESTAMP)', (thing_id, module))
 
     def get_all_storage(self):
-        """Returns all elements inside the bot storage."""
+        """
+        Returns all elements inside the bot storage.
+
+        :return: Tuple with tuples with all storage elements with ``(thing_id, module_name, timestamp)``
+        :rtype: tuple
+        """
         self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, timestamp FROM storage
                             INNER JOIN modules
@@ -96,7 +120,17 @@ class Database:
         return self.cur.fetchall()
 
     def retrieve_thing(self, thing_id, module):
-        """Returns a single thing from the storage - therefore is true if it exists"""
+        """
+        Returns a single thing from the storage by thing_id and module name. Mainly used to check if a plugin already
+        answered on a post.
+
+        :param thing_id: Unique thing_id from a comment or submission.
+        :type thing_id: str
+        :param module: A string naming your plugin.
+        :type module: str
+        :return: Tuple with ``(thing_id, bot_module, timestamp)``
+        :rtype: tuple
+        """
         self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, bot_module, timestamp FROM storage
                             WHERE thing_id = (?)
@@ -106,16 +140,39 @@ class Database:
         return self.cur.fetchone()
 
     def delete_from_storage(self, min_timestamp):
-        """Deletes _all_ items which are older than a certain timestamp"""
+        """
+        Deletes **all** items which are older than the given timestamp.
+
+        :param min_timestamp: Unix timestamp where all entries in storage get deleted if they're older than that.
+        :type min_timestamp: int | float
+        """
         self.cur.execute("DELETE FROM storage WHERE timestamp <= datetime((?), 'unixepoch')", (min_timestamp,))
 
     def select_from_storage(self, older_than_timestamp):
-        """:param older_than_timestamp: Select all elements in the storage that are older than this timestamp."""
+        """
+        Selects and retrieves all elements in the storage which are older than this timestamp.
+
+        :param older_than_timestamp: Unix timestamp of which time everything has to be selected before.
+        :type older_than_timestamp: int | float
+        :return: Tuple of ``(thing_id, bot_module, timestamp)``
+        """
         self.cur.execute("SELECT * FROM storage WHERE timestamp <= datetime((?), 'unixepoch')", (older_than_timestamp,))
         return self.cur.fetchall()
 
     def insert_into_update(self, thing_id, module, lifetime, interval):
-        """Inserts a thing (comment or submission) into the update-table, which calls a module for update-actions."""
+        """
+        Inserts a thing_id (from a comment or submission) into the update-table, which later gets retrieved from the
+        update-thread and fired onto the plugin.
+
+        :param thing_id: Unique thing_id from a comment or submission.
+        :type thing_id: str
+        :param module: A string naming your plugin.
+        :type module: str
+        :param lifetime: Lifetime until this item is valid in Unix timestamp.
+        :type lifetime: float | int
+        :param interval: Interval of how often you'd want this to update in seconds.
+        :type interval: int
+        """
         self._error_if_not_exists(module)
         self.cur.execute("""
                         INSERT INTO update_threads (thing_id, bot_module, created, lifetime, last_updated, interval)
@@ -130,7 +187,11 @@ class Database:
                          (thing_id, module, lifetime, interval,))
 
     def get_all_update(self):
-        """Returns all elements inside the update_threads table"""
+        """
+        Returns all elements inside the update_htreads table.
+        :return: Tuple with tuples of ``(thing_id, module_name, created, lifetime, last_updated, interval)``
+        :rtype: tuple
+        """
         self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, created, lifetime, last_updated, interval
                             FROM update_threads
@@ -140,7 +201,14 @@ class Database:
         return self.cur.fetchall()
 
     def _select_to_update(self, module):
-        """Helper method, refrain from using it."""
+        """
+        Selector method to get the cursor selecting all outstanding threads to update for a certain module. Refrain from
+        using it, since it only places the cursor.
+
+        :param module: A string naming your plugin.
+        :type module: str
+        :return:
+        """
         self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, created, lifetime, last_updated, interval
                             FROM update_threads
@@ -153,17 +221,38 @@ class Database:
                          (module,))
 
     def get_latest_to_update(self, module):
-        """Returns a single thing (comment or submission) for a module."""
+        """
+        Returns a single thing_id (from comment or submssion) for a single module.
+
+        :param module: A string naming your plugin.
+        :type module: str
+        :return: Tuple with tuples of ``(thing_id, module_name, created, lifetime, last_updated, interval)``
+        :rtype: tuple
+        """
         self._select_to_update(module)
         return self.cur.fetchone()
 
     def get_all_to_update(self, module):
-        """Returns _all_ things (comments or submissions) for a module."""
+        """
+        Returns **all** thing_ids (from a comment or submission) for a module.
+
+        :param module: A string naming your plugin.
+        :type module: str
+        :return: Tuple with tuples of ``(thing_id, module_name, created, lifetime, last_updated, interval)``
+        :rtype: tuple
+        """
         self._select_to_update(module)
         return self.cur.fetchall()
 
     def update_timestamp_in_update(self, thing_id, module):
-        """Updates the timestamp when a thing was updated last."""
+        """
+        Updates the timestamp when a thing_id was updated last.
+
+        :param thing_id: Unique thing_id from a comment or submission.
+        :type thing_id: str
+        :param module: A string naming your plugin.
+        :type module: str
+        """
         self._error_if_not_exists(module)
         self.cur.execute("""UPDATE update_threads
                             SET last_updated=CURRENT_TIMESTAMP
@@ -172,7 +261,14 @@ class Database:
                          (thing_id, module))
 
     def delete_from_update(self, thing_id, module):
-        """Deletes _all_ things (comments or submissions) for a module when it outlived its lifetime."""
+        """
+        Deletes **all** thing_ids (from a comment or submission) for a module when it outlived its lifetime.
+
+        :param thing_id: Unique thing_id from a comment or submission.
+        :type thing_id: str
+        :param module: A string naming your plugin.
+        :type module: str
+        """
         self._error_if_not_exists(module)
         self.cur.execute("""DELETE FROM update_threads
                             WHERE thing_id=(?)
@@ -180,24 +276,48 @@ class Database:
                             AND CURRENT_TIMESTAMP > lifetime""", (thing_id, module))
 
     def register_module(self, module):
-        """Registers a module (or notifies you if it has been already registered)."""
+        """
+        Registers a module if it hasn't been so far. A module has to be registered to be useable with the rest of the
+        database.
+        :param module: A string naming your plugin.
+        :type module: str
+        """
         if self._check_if_module_exists(module):
             return
         self.logger.debug("Module {} has been registered.".format(module))
         self.cur.execute('INSERT INTO modules VALUES ((?))', (module,))
 
     def get_all_userbans(self):
-        """Returns all bans stored in the userban table"""
+        """
+        Returns all bans stored in the userban table.
+        :return: Tuple of tuples ``(username, bot_module)``
+        :rtype: tuple
+        """
         self.cur.execute('SELECT * FROM userbans')
         return self.cur.fetchall()
 
     def get_all_bans_per_user(self, username):
-        """Returns all bans of a particular user"""
+        """
+        Returns all bans of a particular user across all plugins.
+        :param username: Author in fulltext in question
+        :type username: str
+        :return: Tuple of tuples ``(username, bot_module)``
+        :rtype: tuple
+        """
         self.cur.execute('SELECT * FROM userbans WHERE username = (?) LIMIT 1', (username,))
         return self.cur.fetchall()
 
     def check_user_ban(self, username, module):
-        """Checks if a particular user has been banned - searches per module and globally"""
+        """
+        Checks if a particular user has been banned, first searches per module, then if there is a global ban.
+
+        :param username: Author in fulltext in question
+        :type username: str
+        :param module: A string naming your plugin.
+        :type module: str
+        :return: Boolean if banned or not.
+        :rtype: bool
+        """
         self.cur.execute('SELECT * FROM userbans '
                          'WHERE username = (?) AND '
                          'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = (?)) '
@@ -212,78 +332,155 @@ class Database:
         return self.cur.fetchone() is True
 
     def add_userban_per_module(self, username, module):
-        """Ban a user for a certain module."""
+        """
+        Bans a user for a certain module.
+
+        :param username: Author in fulltext in question
+        :type username: str
+        :param module: A string naming your plugin.
+        :type module: str
+        """
         self.cur.execute("INSERT INTO userbans (username, bot_module) "
                          "VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name = (?)))", (username, module))
 
     def add_userban_globally(self, username):
-        """Ban a user for all modules."""
+        """
+        Bans a user for all modules.
+
+        :param username: Author in fulltext in question
+        :type username: str
+        """
         self.cur.execute("INSERT INTO userbans (username, bot_module) "
                          "VALUES ((?), NULL)", (username,))
 
     def remove_userban_per_module(self, username, module):
-        """Remove a ban from a certain module."""
+        """
+        Removes a ban from a certain modules.
+
+        :param username: Author in fulltext in question
+        :type username: str
+        :param module: A string naming your plugin.
+        :type module: str
+        """
         self.cur.execute("DELETE FROM userbans WHERE username = (?) AND "
                          "bot_module = (SELECT _ROWID_ FROM modules WHERE modules = (?))", (username, module))
 
     def remove_userban_globally(self, username):
-        """Remove ALL bans from a user."""
+        """
+        Removes **all** bans for a user. Globally and per module level.
+
+        :param username: Author in fulltext in question
+        :type username: str
+        """
         self.cur.execute("DELETE FROM userbans WHERE username = (?)", (username,))
 
     def purge_all_user_bans(self):
-        """Remove ALL bans for users - no exception, clears the table."""
+        """
+        Removes **all** bans for **all** users - no exception, clears the entire table.
+        """
         self.cur.execute("DELETE FROM userbans")
 
     def get_all_banned_subreddits(self):
-        """Returns all bans stored in the subreddit ban table"""
+        """
+        Returns all bans stored in the subreddit ban table
+        """
         self.cur.execute('SELECT * FROM subbans')
         return self.cur.fetchall()
 
-    def get_all_bans_per_subreddit(self, username):
-        """Returns all bans of a particular user"""
-        self.cur.execute('SELECT * FROM subbans WHERE subreddit = (?) LIMIT 1', (username,))
+    def get_all_bans_per_subreddit(self, subreddit):
+        """
+        Returns **all** bans for a particular subreddit
+        :param subreddit: Author in fulltext in question
+        :type subreddit: str
+        """
+        self.cur.execute('SELECT * FROM subbans WHERE subreddit = (?) LIMIT 1', (subreddit,))
         return self.cur.fetchall()
 
-    def check_subreddit_ban(self, username, module):
-        """Checks if a particular user has been banned - searches per module and globally"""
+    def check_subreddit_ban(self, subreddit, module):
+        """
+        Returns if a certain subreddit is banned from a module or across all modules.
+
+        :param subreddit: Author in fulltext in question
+        :type subreddit: str
+        :param module: A string naming your plugin.
+        :type module: str
+        :return: Boolean, True if banned, False if not.
+        :rtype: bool
+        """
         self.cur.execute('SELECT * FROM subbans '
                          'WHERE subreddit = (?) AND '
                          'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = (?)) '
-                         'LIMIT 1', (username, module))
+                         'LIMIT 1', (subreddit, module))
         if self.cur.fetchone():
             return True
 
         self.cur.execute('SELECT * FROM subbans '
                          'WHERE subreddit = (?) AND '
                          'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = NULL    ) '
-                         'LIMIT 1', (username,))
+                         'LIMIT 1', (subreddit,))
         return self.cur.fetchone() is True
 
-    def add_subreddit_ban_per_module(self, username, module):
-        """Ban a subreddit for a certain module."""
-        self.cur.execute("INSERT INTO subbans (subreddit, bot_module) "
-                         "VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name = (?)))", (username, module))
+    def add_subreddit_ban_per_module(self, subreddit, module):
+        """
+        Bans a subreddit from a certain module.
 
-    def add_subreddit_ban_globally(self, username):
+        :param subreddit: Author in fulltext in question
+        :type subreddit: str
+        :param module: A string naming your plugin.
+        :type module: str
+        """
+        self.cur.execute("INSERT INTO subbans (subreddit, bot_module) "
+                         "VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name = (?)))", (subreddit, module))
+
+    def add_subreddit_ban_globally(self, subreddit):
+        """
+        Bans a subreddit across all subreddits.
+
+        :param subreddit: Author in fulltext in question
+        :type subreddit: str
+        """
         """Ban a subreddit across all subreddits."""
         self.cur.execute("INSERT INTO subbans (subreddit, bot_module) "
-                         "VALUES ((?), NULL)", (username,))
+                         "VALUES ((?), NULL)", (subreddit,))
 
     def remove_subreddit_ban_per_module(self, subreddit, module):
-        """Remove a subreddit ban for a certain module."""
+        """
+        Removes a subreddit ban for a certain module
+
+        :param subreddit: Author in fulltext in question
+        :type subreddit: str
+        :param module: A string naming your plugin.
+        :type module: str
+        """
         self.cur.execute("DELETE FROM subbans WHERE subreddit = (?) AND "
                          "bot_module = (SELECT _ROWID_ FROM modules WHERE modules = (?))", (subreddit, module))
 
     def remove_subreddit_ban_globally(self, subreddit):
-        """Remove a subreddit ban across all modules."""
+        """
+        Removes a subreddit ban across all modules and globally
+
+        :param subreddit: Author in fulltext in question
+        :type subreddit: str
+        """
         self.cur.execute("DELETE FROM subbans WHERE subreddit = (?)", (subreddit,))
 
     def purge_all_subreddit_bans(self):
-        """Removes all subreddit bans. No exceptions."""
+        """
+        Removes all subreddit bans from the table - no exceptions, clears the table.
+        """
         self.cur.execute("DELETE FROM subbans")
 
     def _check_if_module_exists(self, module):
-        """Helper method to determine if a module has been already registered. Refrain from using it."""
+        """
+        Helper method to determine if a module has already been registered. Refrain from using it, hence it is private.
+
+        :param module: A string naming your plugin.
+        :type module: str
+        :return: Boolean determining if a module already has been registered.
+        :rtype: bool
+        :raise ValueError: In case of a module being registered multiple times - which should never happen - the
+                           ``Database`` object will raise a value error.
+        """
         self.cur.execute('SELECT COUNT(*) FROM modules WHERE module_name = (?)', (module,))
         result = self.cur.fetchone()
         if result[0] == 0:
@@ -294,24 +491,45 @@ class Database:
             raise ValueError("A module was registered multiple times and is therefore inconsistent. Call for help.")
 
     def _error_if_not_exists(self, module):
-        """Helper method for throwing a concrete error if a module has not been registered, yet a critical database
-           task should have been accomplished."""
+        """
+        Helper method for throwing a concrete error if a module has not been registered, yet tries to write into the
+        database without having a reference.
+
+        :param module: A string naming your plugin.
+        :type module: str
+        :raise LookupError: If the module doesn't exist, it raises an error.
+        """
         if not self._check_if_module_exists(module):
             raise LookupError('The module where this operation comes from is not registered!')
 
     def get_all_modules(self):
-        """Returns all modules that have been registered."""
+        """
+        Returns all modules that have been registered so far.
+
+        :return: Tuple of tuples ``(_ROWID_, module_name)``
+        :rtype: tuple
+        """
         self.cur.execute('SELECT _ROWID_, module_name FROM modules')
         return self.cur.fetchall()
 
     def clean_up_database(self, older_than_unixtime):
-        """Cleans up the database, meaning that everything older than the session time and all threads that should
-           be updated and outlived their lifetime will be deleted."""
+        """
+        Cleans up the database, meaning that everything older than the session time and all threads that should be
+        updated and outlived their lifetime will be deleted.
+
+        :param older_than_unixtime: Unix timestamp from which point entries have to be older than to be deleted.
+        :type older_than_unixtime: int | float
+        """
         self.cur.execute("""DELETE FROM storage WHERE timestamp < datetime((?), 'unixepoch')""", (older_than_unixtime,))
         self.cur.execute("""DELETE FROM update_threads WHERE CURRENT_TIMESTAMP > lifetime""")
 
     def wipe_module(self, module):
-        """Wipes a module entirely across from all tables."""
+        """
+        Wipes a module across all tables and all its references.
+
+        :param module: A string naming your plugin.
+        :type module: str
+        """
         self.cur.execute("""DELETE FROM storage
                             WHERE bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = (?))""", (module,))
         self.cur.execute("""DELETE FROM update_threads
