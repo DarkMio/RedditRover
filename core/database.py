@@ -89,7 +89,6 @@ class Database:
         :param table_name: Name of the table you want to check if it exists.
         :type table_name: str
         :return: Tuple of the table name, empty if it doesn't exist.
-        :rtype: tuple
         """
         self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name=(?)', (table_name,))
         return self.cur.fetchone()
@@ -111,7 +110,6 @@ class Database:
         Returns all elements inside the bot storage.
 
         :return: Tuple with tuples with all storage elements with ``(thing_id, module_name, timestamp)``
-        :rtype: tuple
         """
         self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, timestamp FROM storage
@@ -129,7 +127,6 @@ class Database:
         :param module: A string naming your plugin.
         :type module: str
         :return: Tuple with ``(thing_id, bot_module, timestamp)``
-        :rtype: tuple
         """
         self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, bot_module, timestamp FROM storage
@@ -154,7 +151,7 @@ class Database:
 
         :param older_than_timestamp: Unix timestamp of which time everything has to be selected before.
         :type older_than_timestamp: int | float
-        :return: Tuple of ``(thing_id, bot_module, timestamp)``
+        :return: Tuples of ``(thing_id, bot_module, timestamp)``
         """
         self.cur.execute("SELECT * FROM storage WHERE timestamp <= datetime((?), 'unixepoch')", (older_than_timestamp,))
         return self.cur.fetchall()
@@ -189,8 +186,8 @@ class Database:
     def get_all_update(self):
         """
         Returns all elements inside the update_htreads table.
+
         :return: Tuple with tuples of ``(thing_id, module_name, created, lifetime, last_updated, interval)``
-        :rtype: tuple
         """
         self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, created, lifetime, last_updated, interval
@@ -207,7 +204,6 @@ class Database:
 
         :param module: A string naming your plugin.
         :type module: str
-        :return:
         """
         self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, created, lifetime, last_updated, interval
@@ -227,7 +223,6 @@ class Database:
         :param module: A string naming your plugin.
         :type module: str
         :return: Tuple with tuples of ``(thing_id, module_name, created, lifetime, last_updated, interval)``
-        :rtype: tuple
         """
         self._select_to_update(module)
         return self.cur.fetchone()
@@ -239,7 +234,6 @@ class Database:
         :param module: A string naming your plugin.
         :type module: str
         :return: Tuple with tuples of ``(thing_id, module_name, created, lifetime, last_updated, interval)``
-        :rtype: tuple
         """
         self._select_to_update(module)
         return self.cur.fetchall()
@@ -291,7 +285,6 @@ class Database:
         """
         Returns all bans stored in the userban table.
         :return: Tuple of tuples ``(username, bot_module)``
-        :rtype: tuple
         """
         self.cur.execute('SELECT * FROM userbans')
         return self.cur.fetchall()
@@ -302,7 +295,6 @@ class Database:
         :param username: Author in fulltext in question
         :type username: str
         :return: Tuple of tuples ``(username, bot_module)``
-        :rtype: tuple
         """
         self.cur.execute('SELECT * FROM userbans WHERE username = (?) LIMIT 1', (username,))
         return self.cur.fetchall()
@@ -316,7 +308,6 @@ class Database:
         :param module: A string naming your plugin.
         :type module: str
         :return: Boolean if banned or not.
-        :rtype: bool
         """
         self.cur.execute('SELECT * FROM userbans '
                          'WHERE username = (?) AND '
@@ -405,7 +396,6 @@ class Database:
         :param module: A string naming your plugin.
         :type module: str
         :return: Boolean, True if banned, False if not.
-        :rtype: bool
         """
         self.cur.execute('SELECT * FROM subbans '
                          'WHERE subreddit = (?) AND '
@@ -477,7 +467,6 @@ class Database:
         :param module: A string naming your plugin.
         :type module: str
         :return: Boolean determining if a module already has been registered.
-        :rtype: bool
         :raise ValueError: In case of a module being registered multiple times - which should never happen - the
                            ``Database`` object will raise a value error.
         """
@@ -507,7 +496,6 @@ class Database:
         Returns all modules that have been registered so far.
 
         :return: Tuple of tuples ``(_ROWID_, module_name)``
-        :rtype: tuple
         """
         self.cur.execute('SELECT _ROWID_, module_name FROM modules')
         return self.cur.fetchall()
