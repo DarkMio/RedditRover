@@ -217,7 +217,7 @@ class PluginBase(metaclass=ABCMeta):
         """
         try:
             self._oa_refresh(force)
-        except HTTPException:
+        except (HTTPException, praw.errors.OAuthAppRequired):  # OAuthAppRequired: Possible bug, currently untracked
             # Good news: This works. Bad news: I don't remember why the same keys suddenly work.
             self.factory_reddit()
             self._oa_refresh(True)
