@@ -62,6 +62,7 @@ class RedditRover:
         self.logger = logprovider.setup_logging(log_level="DEBUG")
         self.config = ConfigParser()
         self.config.read(resource_filename('config', 'bot_config.ini'))
+        self.mark_as_read, self.catch_http_exception, self.delete_after, self.verbose = self._bot_variables()
         self.multi_thread = MultiThreader()
         self.lock = self.multi_thread.get_lock()
         self.database_update = Database()
@@ -81,11 +82,19 @@ class RedditRover:
             self.logger.error(e)
             self.logger.error(traceback.print_exc())
             exit(-1)
-        self.delete_after = self.config.get('RedditRover', 'delete_after')
         self.submissions = praw.helpers.submission_stream(self.submission_poller, 'all', limit=None, verbosity=0)
         self.comments = praw.helpers.comment_stream(self.comment_poller, 'all', limit=None, verbosity=0)
         self.multi_thread.go([self.comment_thread], [self.submission_thread], [self.update_thread])
         self.multi_thread.join_threads()
+
+    def _bot_variables(self):
+        """
+        Gets all relevant variables for this bot from the configuration
+        :return:
+        """
+        get_b = lambda x: self.config.getboolean('RedditRover', x)
+        get_i = lambda x: self.config.getint('RedditRover', x)
+        return get_b('mark_as_read'), get_b('catch_http_exception'), get_i('delete_after'), get_b('verbose')
 
     def _filter_single_thing(self, thing, responder):
         """
@@ -229,7 +238,7 @@ class RedditRover:
                     responder.BOT_NAME))
                 pass
         except HTTPException as e:
-            if True:  # @TODO: Make this a configuration option.
+            if self.catch_http_exception:
                 self.logger.error('{} encountered: HTTPException - probably Reddits API.'.format(responder.BOT_NAME))
             else:
                 raise e
@@ -249,9 +258,9 @@ class RedditRover:
                 try:
                     for thread in threads:
                         self.update_action(thread, responder)
-                    responder.get_unread_messages()  # @TODO: Config mark_as_read
+                    responder.get_unread_messages(self.mark_as_read)
                 except HTTPException as e:
-                    if True:  # @TODO: Make this a configuration option.
+                    if self.catch_http_exception:
                         self.logger.error('{} encountered: HTTPException - probably Reddits API.'.format(
                             responder.BOT_NAME))
                     else:
@@ -262,7 +271,7 @@ class RedditRover:
             self.database_update.clean_up_database(int(time()) - int(self.delete_after))
             self.lock.release()
             # after working through all update threads, sleep for five minutes. #saveresources
-            sleep(360)
+            sleep(360)  # @TODO: Needs a config option
 
     @retry(HTTPException)  # when the API bugs out, we retry it for a while, this thread has time for it anyway.
     def update_action(self, thread, responder):
