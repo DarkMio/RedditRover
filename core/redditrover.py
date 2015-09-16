@@ -217,8 +217,7 @@ class RedditRover:
                     self.database_subm.insert_into_storage(thing.name, responder.BOT_NAME)
         except Forbidden:
             name = thing.subreddit.display_name
-            self.database_subm.add_subreddit_ban_per_module(name,
-                                                       responder.BOT_NAME)
+            self.database_subm.add_subreddit_ban_per_module(name, responder.BOT_NAME)
             self.logger.error("It seems like {} is banned in '{}'. The bot will ban the subreddit now"
                               " from the module to escape it automatically.".format(responder.BOT_NAME, name))
         except NotFound:
@@ -229,6 +228,11 @@ class RedditRover:
                 self.logger.debug('{} tried to comment on an already deleted resource - ignored.'.format(
                     responder.BOT_NAME))
                 pass
+        except HTTPException as e:
+            if True:  # @TODO: Make this a configuration option.
+                self.logger.error('{} encountered: HTTPException - probably Reddits API.'.format(responder.BOT_NAME))
+            else:
+                raise e
         except Exception as e:
             raise e
 
