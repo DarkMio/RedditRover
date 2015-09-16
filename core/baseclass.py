@@ -241,7 +241,6 @@ class PluginBase(metaclass=ABCMeta):
                         msg.mark_as_read()
                     self.on_new_message(msg)
             except AssertionError:
-
                 pass
 
     def standard_ban_procedure(self, message, subreddit_banning_allowed=True, user_banning_allowed=True):
