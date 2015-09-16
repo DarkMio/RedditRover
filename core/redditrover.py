@@ -250,6 +250,12 @@ class RedditRover:
                     for thread in threads:
                         self.update_action(thread, responder)
                     responder.get_unread_messages()  # @TODO: Config mark_as_read
+                except HTTPException as e:
+                    if True:  # @TODO: Make this a configuration option.
+                        self.logger.error('{} encountered: HTTPException - probably Reddits API.'.format(
+                            responder.BOT_NAME))
+                    else:
+                        raise e
                 except Exception as e:
                     self.logger.error(traceback.print_exc())
                     self.logger.error("{} error: {} < {}".format(responder.BOT_NAME, e.__class__.__name__, e))
