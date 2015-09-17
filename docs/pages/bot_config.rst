@@ -26,7 +26,7 @@ pesent in a particular way:
 If your bot is not logged in, you can ignore the values ``self_ignore``, ``username`` and ``oauth_file``.
 
 Other than that you can use any variable in this section as you please, i. e. storing response strings. The normally
-supplied attribe ``config`` in every plugin can be used to load those variables.
+supplied attribute ``config`` in every plugin can be used to load those variables.
 
 
 
