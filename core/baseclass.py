@@ -197,6 +197,21 @@ class PluginBase(metaclass=ABCMeta):
             f.close()
         self.oa_refresh(force=True)
 
+    def add_comment(self, thing_id, text):
+        """
+        Add a comment to the current thing.
+
+        :param thing_id: Either a comment or a submission id to comment on.
+        :type thing_id: str
+        :param text: Comment text
+        :type text: str
+        :return: ``praw.objects.Comment`` from the responded comment.
+        """
+        assert self.session and self.session.has_oauth_app_info, "{} is not logged in," \
+                                                                 "cannot comment on.".format(self.BOT_NAME)
+        self._oa_refresh()
+        return self.session._add_comment(thing_id, text)
+
     @retry(HTTPException)
     def _oa_refresh(self, force=False):
         """
