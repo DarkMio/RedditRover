@@ -104,6 +104,7 @@ class Database:
         """
         self.cur.execute('INSERT INTO storage VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name=(?)), '
                          'CURRENT_TIMESTAMP)', (thing_id, module))
+        self.logger.debug('{} from {} inserted into storage.'.format(thing_id, module))
 
     def get_all_storage(self):
         """
@@ -111,7 +112,6 @@ class Database:
 
         :return: Tuple with tuples with all storage elements with ``(thing_id, module_name, timestamp)``
         """
-        self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, timestamp FROM storage
                             INNER JOIN modules
                             ON storage.bot_module = modules._ROWID_""")
@@ -144,6 +144,7 @@ class Database:
         :type min_timestamp: int | float
         """
         self.cur.execute("DELETE FROM storage WHERE timestamp <= datetime((?), 'unixepoch')", (min_timestamp,))
+        self.logger.debug('Deleted everything from storage older than {}'.format(min_timestamp))
 
     def select_from_storage(self, older_than_timestamp):
         """
@@ -182,6 +183,8 @@ class Database:
                                 (?))
                          """,
                          (thing_id, module, lifetime, interval,))
+        self.logger.debug('Inserted {} from {} to update - lifetime: {} | interval: {}'.format(thing_id, module,
+                                                                                               lifetime, interval))
 
     def get_all_update(self):
         """
@@ -189,7 +192,6 @@ class Database:
 
         :return: Tuple with tuples of ``(thing_id, module_name, created, lifetime, last_updated, interval)``
         """
-        self._error_if_not_exists(module)
         self.cur.execute("""SELECT thing_id, module_name, created, lifetime, last_updated, interval
                             FROM update_threads
                             INNER JOIN modules
@@ -253,6 +255,7 @@ class Database:
                             WHERE thing_id=(?)
                             AND bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = (?))""",
                          (thing_id, module))
+        self.logger.debug('Updated timestamp on {} from {}'.format(thing_id, module))
 
     def delete_from_update(self, thing_id, module):
         """
@@ -278,8 +281,8 @@ class Database:
         """
         if self._check_if_module_exists(module):
             return
-        self.logger.debug("Module {} has been registered.".format(module))
         self.cur.execute('INSERT INTO modules VALUES ((?))', (module,))
+        self.logger.debug("Module {} has been registered.".format(module))
 
     def get_all_userbans(self):
         """
@@ -333,6 +336,7 @@ class Database:
         """
         self.cur.execute("INSERT INTO userbans (username, bot_module) "
                          "VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name = (?)))", (username, module))
+        self.logger.debug('User {} got banned on {}'.format(username, module))
 
     def add_userban_globally(self, username):
         """
@@ -343,6 +347,7 @@ class Database:
         """
         self.cur.execute("INSERT INTO userbans (username, bot_module) "
                          "VALUES ((?), NULL)", (username,))
+        self.logger.debug('User {} got banned across all modules.'.format(username))
 
     def remove_userban_per_module(self, username, module):
         """
@@ -355,6 +360,7 @@ class Database:
         """
         self.cur.execute("DELETE FROM userbans WHERE username = (?) AND "
                          "bot_module = (SELECT _ROWID_ FROM modules WHERE modules = (?))", (username, module))
+        self.logger.debug('User {} got unbanned on {}'.format(username, module))
 
     def remove_userban_globally(self, username):
         """
@@ -364,12 +370,14 @@ class Database:
         :type username: str
         """
         self.cur.execute("DELETE FROM userbans WHERE username = (?)", (username,))
+        self.logger.debug('User {} got unbanned across all modules.'.format(username))
 
     def purge_all_user_bans(self):
         """
         Removes **all** bans for **all** users - no exception, clears the entire table.
         """
         self.cur.execute("DELETE FROM userbans")
+        self.logger.debug('Removed all userbans!')
 
     def get_all_banned_subreddits(self):
         """
@@ -421,6 +429,7 @@ class Database:
         """
         self.cur.execute("INSERT INTO subbans (subreddit, bot_module) "
                          "VALUES ((?), (SELECT _ROWID_ FROM modules WHERE module_name = (?)))", (subreddit, module))
+        self.logger.debug('Subreddit {} got banned on {}'.format(subreddit, module))
 
     def add_subreddit_ban_globally(self, subreddit):
         """
@@ -429,9 +438,9 @@ class Database:
         :param subreddit: Author in fulltext in question
         :type subreddit: str
         """
-        """Ban a subreddit across all subreddits."""
         self.cur.execute("INSERT INTO subbans (subreddit, bot_module) "
                          "VALUES ((?), NULL)", (subreddit,))
+        self.logger.debug('Subreddit {} got banned across all modules.'.format(subreddit))
 
     def remove_subreddit_ban_per_module(self, subreddit, module):
         """
@@ -444,6 +453,7 @@ class Database:
         """
         self.cur.execute("DELETE FROM subbans WHERE subreddit = (?) AND "
                          "bot_module = (SELECT _ROWID_ FROM modules WHERE modules = (?))", (subreddit, module))
+        self.logger.debug('Subreddit {} got unbanned on {}'.format(subreddit, module))
 
     def remove_subreddit_ban_globally(self, subreddit):
         """
@@ -453,12 +463,14 @@ class Database:
         :type subreddit: str
         """
         self.cur.execute("DELETE FROM subbans WHERE subreddit = (?)", (subreddit,))
+        self.logger.debug('Subreddit {} got unbanned across all modules.'.format(subreddit))
 
     def purge_all_subreddit_bans(self):
         """
         Removes all subreddit bans from the table - no exceptions, clears the table.
         """
         self.cur.execute("DELETE FROM subbans")
+        self.logger.debug('All subreddit bans removed!')
 
     def _check_if_module_exists(self, module):
         """
@@ -510,6 +522,8 @@ class Database:
         """
         self.cur.execute("""DELETE FROM storage WHERE timestamp < datetime((?), 'unixepoch')""", (older_than_unixtime,))
         self.cur.execute("""DELETE FROM update_threads WHERE CURRENT_TIMESTAMP > lifetime""")
+        self.logger.debug('Database cleanup: All storage items older than '
+                          '{} and all deprecated update-threads removed'.format(older_than_unixtime))
 
     def wipe_module(self, module):
         """
@@ -523,14 +537,16 @@ class Database:
         self.cur.execute("""DELETE FROM update_threads
                             WHERE bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = (?))""", (module,))
         self.cur.execute("""DELETE FROM modules WHERE module_name = (?)""", (module,))
+        self.logger.debug("{} got wiped from all tables and all its references.".format(module))
 
 
 if __name__ == "__main__":
-    db = Database()
-    thing_id = "t2_c384fd"
-    module = "MassdropBot"
-    user = "MioMoto"
-    subreddit = "dota2"
+    pass
+#   db = Database()
+#   thing_id = "t2_c384fd"
+#   module = "MassdropBot"
+#   user = "MioMoto"
+#   subreddit = "dota2"
 #   Commands that work:
 #   >> Storage
 #   db.insert_into_storage(thing_id, module)

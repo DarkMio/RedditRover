@@ -206,6 +206,7 @@ class PluginBase(metaclass=ABCMeta):
         :type force: bool
         """
         assert self.OA_REFRESH_TOKEN and self.session, 'Cannot refresh, no refresh token or session is missing.'
+        self.logger.debug('Dispatching OAuth refresh.')
         if force or time() > self.OA_VALID_UNTIL:
             token_dict = self.session.refresh_access_information(self.OA_REFRESH_TOKEN)
             self.OA_ACCESS_TOKEN = token_dict['access_token']
@@ -340,7 +341,7 @@ class PluginBase(metaclass=ABCMeta):
         """
         obj = response_object
         if not self.database:
-            self.logger.error('{} does not have a valid database connection.'.format(self.BOT_NAME))
+            self.logger.error('{} does not have a valid database pointer.'.format(self.BOT_NAME))
         else:
             if isinstance(obj, praw.objects.Submission) or isinstance(obj, praw.objects.Comment):
                 self.database.insert_into_update(response_object.fullname, self.BOT_NAME, lifetime, interval)

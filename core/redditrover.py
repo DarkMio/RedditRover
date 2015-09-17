@@ -40,6 +40,15 @@ class RedditRover:
     :ivar delete_after: All activity older than x seconds will be cleaned up from the database.
     :vartype delete_after: int
     :type delete_after: int
+    :ivar verbose: True if heavily verbose, false if not.
+    :vartype verbose: bool
+    :type verbose: bool
+    :ivar catch_http_exception: True if HTTP exceptions get automatically catched, False if not.
+    :vartype catch_http_exception: bool
+    :type catch_http_exception: bool
+    :ivar mark_as_read: True if all messages worked through are marked as read.
+    :vartype mark_as_read: bool
+    :type mark_as_read: bool
     :ivar praw_handler: Will hold the handler to RateLimit based on OAuth / No-Auth sessions.
     :vartype praw_handler: RedditRoverHandler
     :type praw_handler: RedditRoverHandler
@@ -59,10 +68,10 @@ class RedditRover:
 
     def __init__(self):
         warning_filter.ignore()
-        self.logger = logprovider.setup_logging(log_level="DEBUG")
         self.config = ConfigParser()
         self.config.read(resource_filename('config', 'bot_config.ini'))
-        self.mark_as_read, self.catch_http_exception, self.delete_after, self.verbose = self._bot_variables()
+        self.mark_as_read, self.catch_http_exception, self.delete_after, self.verbose, subreddit = self._bot_variables()
+        self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose])
         self.multi_thread = MultiThreader()
         self.lock = self.multi_thread.get_lock()
         self.database_update = Database()
@@ -82,19 +91,21 @@ class RedditRover:
             self.logger.error(e)
             self.logger.error(traceback.print_exc())
             exit(-1)
-        self.submissions = praw.helpers.submission_stream(self.submission_poller, 'all', limit=None, verbosity=0)
-        self.comments = praw.helpers.comment_stream(self.comment_poller, 'all', limit=None, verbosity=0)
+        self.submissions = praw.helpers.submission_stream(self.submission_poller, subreddit, limit=None, verbosity=0)
+        self.comments = praw.helpers.comment_stream(self.comment_poller, subreddit, limit=None, verbosity=0)
         self.multi_thread.go([self.comment_thread], [self.submission_thread], [self.update_thread])
         self.multi_thread.join_threads()
 
     def _bot_variables(self):
         """
         Gets all relevant variables for this bot from the configuration
-        :return:
+        :return: Tuple of ``(mark_as_read, catch_http_exception, delete_after, verbose, subreddit)``
         """
         get_b = lambda x: self.config.getboolean('RedditRover', x)
         get_i = lambda x: self.config.getint('RedditRover', x)
-        return get_b('mark_as_read'), get_b('catch_http_exception'), get_i('delete_after'), get_b('verbose')
+        get = lambda x: self.config.get('RedditRover', x)
+        return get_b('mark_as_read'), get_b('catch_http_exception'), get_i('delete_after'), get_b('verbose'),\
+            get('subreddit')
 
     def _filter_single_thing(self, thing, responder):
         """
@@ -225,6 +236,7 @@ class RedditRover:
                 responded = responder.execute_comment(thing)
 
             if responded:
+                self.logger.debug('{} successfully responded on {}'.format(responder.BOT_NAME, thing.permalink))
                 if isinstance(thing, praw.objects.Comment):
                     self.database_cmt.insert_into_storage(thing.name, responder.BOT_NAME)
                 else:
@@ -239,7 +251,7 @@ class RedditRover:
         except (APIException, InvalidSubmission) as e:
             if isinstance(e, APIException) and e.error_type == 'DELETED_LINK' \
                     or isinstance(e, InvalidSubmission):
-                self.logger.debug('{} tried to comment on an already deleted resource - ignored.'.format(
+                self.logger.warning('{} tried to comment on an already deleted resource - ignored.'.format(
                     responder.BOT_NAME))
                 pass
         except Exception as e:
