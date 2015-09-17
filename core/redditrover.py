@@ -194,6 +194,11 @@ class RedditRover:
             if self._filter_single_thing(thing, responder):
                 try:
                     self.comment_submission_action(thing, responder)
+                except HTTPException as e:
+                    if self.catch_http_exception:
+                        self.logger.error('{} encountered: HTTPException - probably Reddits API.'.format(responder.BOT_NAME))
+                    else:
+                        raise e
                 except Exception as e:
                     self.logger.error(traceback.print_exc())
                     self.logger.error("{} error: {} < {}".format(responder.BOT_NAME, e.__class__.__name__, e))
@@ -237,11 +242,6 @@ class RedditRover:
                 self.logger.debug('{} tried to comment on an already deleted resource - ignored.'.format(
                     responder.BOT_NAME))
                 pass
-        except HTTPException as e:
-            if self.catch_http_exception:
-                self.logger.error('{} encountered: HTTPException - probably Reddits API.'.format(responder.BOT_NAME))
-            else:
-                raise e
         except Exception as e:
             raise e
 

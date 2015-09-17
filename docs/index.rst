@@ -21,9 +21,10 @@ Contents:
 
    pages/writing_a_plugin
    pages/bot_config
+   pages/faq
    pages/core
    pages/misc
-   pages/faq
+
 
 * :ref:`modindex`
 

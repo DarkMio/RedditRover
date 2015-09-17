@@ -44,7 +44,7 @@ maintaining code really simple. First you import the base class:
     from core.BaseClass import PluginBase
 
 3. Object from PluginBase
--------------------
+-------------------------
 Now comes the real part: Every plugin needs to inherit from the base class and has to implement a specific set of
 methods to function properly. This would look like this:
 
@@ -52,8 +52,8 @@ methods to function properly. This would look like this:
 
     class MyPlugin(PluginBase):
 
-        def __init__(self, database):
-            super().__init__(database, 'MyBotName')
+        def __init__(self, database, handler):
+            super().__init__(database, handler, 'MyBotName')
 
         def execute_comment(self, comment):
             if 'reddit' in comment.body.lower():
@@ -85,8 +85,8 @@ All you need to do is following:
 
 .. code-block:: python
 
-    def init(database):
-        return MyPlugin(database)
+    def init(database, handler):
+        return MyPlugin(database, handler)
 
 5. Test Block (optional)
 ------------------------
@@ -96,7 +96,7 @@ comment by id to test your bot against real world data and test cases. You can n
 .. code-block:: python
 
     if __name__ == '__main__':
-        my_plugin = MyPlugin(None)  # Remember: We don't always need the database.
+        my_plugin = MyPlugin(None, None, 'MyBotName')  # Remember: We don't always need the database.
         my_plugin.test_single_submission('3iyxxt')  # See: https://redd.it/29f2ah
         my_plugin.test_single_comment('cukvign')  # See:
 
@@ -129,8 +129,8 @@ In case you struggle with assembling the code, here is it as full set:
 
     class MyPlugin(PluginBase):
 
-        def __init__(self, database):
-            super().__init__(database, 'MyBotName')
+        def __init__(self, database, handler):
+            super().__init__(database, handler, 'MyBotName')
 
         def execute_comment(self, comment):
             if 'reddit' in comment.body.lower():
@@ -148,18 +148,18 @@ In case you struggle with assembling the code, here is it as full set:
                 author = ('[unknown]', submission.author.name)[submission.author is True]
                 self.logger.info('{} said reddit here: {}'.format(author, submission.permalink))
 
-        def update_procedure(self, thing_id, created, lifetime, last_updated, interval):
+        def update_procedure(self, thing, created, lifetime, last_updated, interval):
             pass
 
         def on_new_message(self, message):
             pass
 
 
-    def init(database):
-        return MyPlugin(database)
+    def init(database, handler):
+        return MyPlugin(database, handler)
 
 
     if __name__ == '__main__':
-        my_plugin = MyPlugin(None)  # Remember: We don't always need the database.
+        my_plugin = MyPlugin(None, None)  # Remember: We don't always need the database.
         my_plugin.test_single_submission('3iyxxt')  # See: https://redd.it/29f2ah
         my_plugin.test_single_comment('cukvign')  # See:
