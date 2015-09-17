@@ -11,6 +11,7 @@ from pkg_resources import resource_filename
 from praw.errors import HTTPException
 
 from core.decorators import retry
+from core.handlers import RoverHandler
 
 
 class PluginBase(metaclass=ABCMeta):
@@ -82,7 +83,10 @@ class PluginBase(metaclass=ABCMeta):
         self.database = database
         self.BOT_NAME = bot_name
         self.RE_BANMSG = re.compile(r'ban /([r|u])/([\d\w_]*)', re.UNICODE)
-        self.handler = handler
+        if not handler:
+            self.handler = RoverHandler()
+        else:
+            self.handler = handler
         if setup_from_config:
             self.config = self.factory_config()
             get = lambda x: self.config.get(bot_name, x)
