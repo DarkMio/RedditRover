@@ -23,6 +23,7 @@ Contents:
    pages/bot_config
    pages/core
    pages/misc
+   pages/faq
 
 * :ref:`modindex`
 

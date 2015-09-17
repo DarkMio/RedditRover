@@ -11,6 +11,13 @@ This documents the all important aspects of the framework. Some objects are hidd
     possible. It also gives an extended feature set which helps with basic tasks necessary with every bot, i. e. logging
     in a bot into reddit, providing the standard config or testing against single, manually input threads and comments.
 
+.. warning:: Do not change the method signature of abstract methods. This will result in a mismatch of a cached abstract
+             class meta, resulting in a ``TypeError``. That is an unintended side effect of using abstract base classes.
+             When your plugin overwrites the abstract methods, keep the method arguments exactly the same.
+
+             More information: The first found plugin which overwrites the abstract method defines the signature of all
+             other plugins. Deep introspections leads you to Base._abc_registry, which is not documented.
+
 .. automodule:: core.baseclass
     :members:
     :private-members:
