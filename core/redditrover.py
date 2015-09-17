@@ -244,8 +244,7 @@ class RedditRover:
         except Forbidden:
             name = thing.subreddit.display_name
             self.database_subm.add_subreddit_ban_per_module(name, responder.BOT_NAME)
-            self.logger.error("It seems like {} is banned in '{}'. The bot will ban the subreddit now"
-                              " from the module to escape it automatically.".format(responder.BOT_NAME, name))
+            self.logger.error("{} is banned in '{}'. Auto banned".format(responder.BOT_NAME, name))
         except NotFound:
             pass
         except (APIException, InvalidSubmission) as e:
