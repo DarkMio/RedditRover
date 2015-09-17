@@ -148,7 +148,7 @@ class DailyRotationHandler(BaseRotatingHandler):
     :type utc: bool
     :vartype utc: bool
     """
-    def __init__(self, pathformat="%Y/%m/%Y-%m-%d.log", utc=False, encoding=None, delay=False):
+    def __init__(self, pathformat="logs/%Y/%m/%Y-%m-%d.log", utc=False, encoding=None, delay=False):
         self.path_format = pathformat
         self.utc = utc
         current_time = self._get_time()
