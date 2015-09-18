@@ -1,20 +1,19 @@
 # coding=utf-8
-from configparser import ConfigParser
-from pkg_resources import resource_filename
-from time import time, sleep, strptime
-from sys import exit
-import pkgutil
-import traceback
-
-from praw.errors import *
-import praw
-
 import plugins
 from core import logprovider
 from misc import warning_filter
-
 from core import *
 from .decorators import retry
+
+from configparser import ConfigParser
+from time import time, sleep, strptime
+from sys import exit
+from pkg_resources import resource_filename
+from praw.errors import *
+
+import pkgutil
+import traceback
+import praw
 
 
 class RedditRover:
@@ -43,6 +42,9 @@ class RedditRover:
     :ivar verbose: True if heavily verbose, false if not.
     :vartype verbose: bool
     :type verbose: bool
+    :ivar update_interval: Sets an interval on the update-thread, cleaning the DB, reading messages and running updates
+    :vartype update_interval: int
+    :type update_interval: int
     :ivar catch_http_exception: True if HTTP exceptions get automatically catched, False if not.
     :vartype catch_http_exception: bool
     :type catch_http_exception: bool
@@ -70,7 +72,8 @@ class RedditRover:
         warning_filter.ignore()
         self.config = ConfigParser()
         self.config.read(resource_filename('config', 'bot_config.ini'))
-        self.mark_as_read, self.catch_http_exception, self.delete_after, self.verbose, subreddit = self._bot_variables()
+        self.mark_as_read, self.catch_http_exception, self.delete_after, self.verbose, self.update_interval, \
+            subreddit = self._bot_variables()
         self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose])
         self.multi_thread = MultiThreader()
         self.lock = self.multi_thread.get_lock()
@@ -84,7 +87,7 @@ class RedditRover:
                                                  handler=self.praw_handler)
             self.comment_poller = praw.Reddit(user_agent='Comment-Poller for several logins by /u/DarkMio',
                                               handler=self.praw_handler)
-        except Exception as e:  # I am sorry linux, but ConnectionRefused Error can't be imported..
+        except Exception as e:  # I am sorry linux, but ConnectionRefused Error can't be imported.
             self.logger.error("PRAW Multiprocess server does not seem to be running. "
                               "Please make sure that the server is running and responding. "
                               "Bot is shutting down now.")
@@ -105,7 +108,7 @@ class RedditRover:
         get_i = lambda x: self.config.getint('RedditRover', x)
         get = lambda x: self.config.get('RedditRover', x)
         return get_b('mark_as_read'), get_b('catch_http_exception'), get_i('delete_after'), get_b('verbose'),\
-            get('subreddit')
+            get_i('update_interval'), get('subreddit')
 
     def _filter_single_thing(self, thing, responder):
         """
@@ -282,7 +285,7 @@ class RedditRover:
             self.database_update.clean_up_database(int(time()) - int(self.delete_after))
             self.lock.release()
             # after working through all update threads, sleep for five minutes. #saveresources
-            sleep(360)  # @TODO: Needs a config option
+            sleep(self.update_interval)
 
     @retry(HTTPException)  # when the API bugs out, we retry it for a while, this thread has time for it anyway.
     def update_action(self, thread, responder):
