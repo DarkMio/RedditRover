@@ -62,8 +62,9 @@ This bot is now again under development. Way less complex code, more segmentatio
 
 Planned features & work in progress
 -----------------------------------
-- Debugger-Features and startup commands.
-- Rewriting some chunks of the Massdrop-Plugin, it's nesting and separation of concerns is horrible currently.
+
+- Statistics module, rendering live stats of the bot (should have changeable paths)
+- Some interface to control the bot. Mainly restarting, muting, ignoring, etc. Maybe web backend?
 
 .. end_future
 
@@ -71,6 +72,7 @@ Planned features & work in progress
 
 Help, questions, contribution
 -----------------------------
+
 Check out the `FAQ <https://github.com/DarkMio/Massdrop-Reddit-Bot/wiki/FAQ>`_, which should cover most issues.
 Pull Requests, emails and messages on Reddit are welcome.
 
