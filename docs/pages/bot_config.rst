@@ -12,7 +12,7 @@ Plugin Config
 -------------
 
 Every plugin needs to have a base set of configuration (if you use the standard config options), which have to be
-pesent in a particular way:
+present in a particular way:
 
 .. code-block:: py
 

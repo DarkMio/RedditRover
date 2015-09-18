@@ -25,7 +25,7 @@ What assumptions does this framework make?
 ------------------------------------------
 
 ``403 Forbidden``: If you're trying to submit content and the API responds with 403 Forbidden, the framework assumes that
-this account is banned or not approved in that subreddit and will set it on the active banlist, effectively ignoring
+this account is banned or not approved in that subreddit and will set it on the active ban list, effectively ignoring
 all submissions or comments from now on.
 
 ``APIException: deleted link``, ``InvalidSubmissions``: Sometimes content gets faster deleted than the bot can react to
@@ -48,7 +48,7 @@ Requests, API limitations, slow framework
 
 Reddit has strict API limits:
 
-- **Not logged in / Authcookie sessions:** 30 requests per minute per IP
+- **Not logged in / Auth-cookie sessions:** 30 requests per minute per IP
 - **OAuthed sessions**: 60 requests per minute per session
 
 There is a customized RoverHandler to take care exactly of these limitations. However, since PRAW is based on lazy

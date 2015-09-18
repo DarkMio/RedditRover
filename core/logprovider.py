@@ -137,6 +137,7 @@ def _local_time_offset():
         return -time.timezone / 3600, time.tzname[0]
 
 
+# noinspection PyPep8Naming
 class DailyRotationHandler(BaseRotatingHandler):
     """
     This handler swaps over logs after a day. Quirky method names result from inheriting.

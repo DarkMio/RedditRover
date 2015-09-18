@@ -17,8 +17,6 @@ def retry(exception_to_check, tries=4, delay=3, backoff=2):
     :param backoff: backoff multiplier e.g. value of 2 will double the delay
         each retry
     :type backoff: int
-    :param logger: logger to use. If None, print
-    :type logger: logging.Logger instance
     """
     def deco_retry(f):
 

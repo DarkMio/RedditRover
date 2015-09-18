@@ -1,10 +1,10 @@
 misc package
 ============
 
-misc.mutliple_strings module
+misc.multiple_strings module
 ----------------------------
 
-.. automodule:: misc.mutliple_strings
+.. automodule:: misc.multiple_strings
     :members:
     :undoc-members:
     :show-inheritance:

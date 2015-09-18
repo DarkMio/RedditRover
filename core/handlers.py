@@ -37,6 +37,7 @@ class RoverHandler:
         self.http = Session()
         self.rl_lock = Lock()
 
+    # noinspection PyBroadException
     def __del__(self):
         """
         Cleans up the http session on object deletion
@@ -47,6 +48,7 @@ class RoverHandler:
             except Exception:
                 pass
 
+    # noinspection PyUnusedLocal
     @classmethod
     def evict(cls, urls):
         """

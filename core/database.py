@@ -321,7 +321,7 @@ class Database:
 
         self.cur.execute('SELECT * FROM userbans '
                          'WHERE username = (?) AND '
-                         'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = NULL    ) '
+                         'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name IS NULL    ) '
                          'LIMIT 1', (username,))
         return self.cur.fetchone() is True
 
@@ -414,7 +414,7 @@ class Database:
 
         self.cur.execute('SELECT * FROM subbans '
                          'WHERE subreddit = (?) AND '
-                         'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name = NULL    ) '
+                         'bot_module = (SELECT _ROWID_ FROM modules WHERE module_name IS NULL    ) '
                          'LIMIT 1', (subreddit,))
         return self.cur.fetchone() is True
 

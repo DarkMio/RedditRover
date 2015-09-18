@@ -55,7 +55,7 @@ class PluginBase(metaclass=ABCMeta):
     :ivar OA_TOKEN_DURATION: *OAuth Token validation timer. Usually set to 59minutes to have a good error margin
     :type OA_TOKEN_DURATION: int | float
     :vartype OA_TOKEN_DURATION: int | float
-    :ivar OA_VALID_UNTIL: *Determines how long the OA_ACCES_TOKEN is valid as timestamp.
+    :ivar OA_VALID_UNTIL: *Determines how long the OA_ACCESS_TOKEN is valid as timestamp.
                            Gets refreshed by `oa_refresh(force=False`
     :type OA_VALID_UNTIL: int | float
     :vartype OA_VALID_UNTIL: int | float
@@ -65,7 +65,7 @@ class PluginBase(metaclass=ABCMeta):
     :ivar logger: Logger for this specific plugin.
     :type logger: logging.Logger
     :vartype logger: logging.Logger
-    :ivar config: ConfigParser loaded for that plugin. Can access all other sections and variables aswell.
+    :ivar config: ConfigParser loaded for that plugin. Can access all other sections and variables as well.
     :type config: ConfigParser
     :vartype config: ConfigParser
     :ivar database: Session to database, can be None if not needed.
@@ -210,6 +210,7 @@ class PluginBase(metaclass=ABCMeta):
         assert self.session and self.session.has_oauth_app_info, "{} is not logged in," \
                                                                  "cannot comment on.".format(self.BOT_NAME)
         self._oa_refresh()
+        # noinspection PyProtectedMember
         return self.session._add_comment(thing_id, text)
 
     @retry(HTTPException)

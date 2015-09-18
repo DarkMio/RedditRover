@@ -16,7 +16,7 @@ This documents the all important aspects of the framework. Some objects are hidd
              When your plugin overwrites the abstract methods, keep the method arguments exactly the same.
 
              More information: The first found plugin which overwrites the abstract method defines the signature of all
-             other plugins. Deep introspections leads you to Base._abc_registry, which is not documented.
+             other plugins. Deep introspection leads you to Base._abc_registry, which is not documented.
 
 .. automodule:: core.baseclass
     :members:

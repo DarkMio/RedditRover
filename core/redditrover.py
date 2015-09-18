@@ -82,6 +82,7 @@ class RedditRover:
         self.database_subm = Database()
         try:
             self.praw_handler = RoverHandler()
+            self.responders = []
             self.load_responders()
             self.submission_poller = praw.Reddit(user_agent='Submission-Poller for several logins by /u/DarkMio',
                                                  handler=self.praw_handler)
@@ -119,6 +120,7 @@ class RedditRover:
         :param responder: Single plugin
         :type responder: PluginBase
         """
+        # noinspection PyBroadException
         try:
             if isinstance(thing, praw.objects.Comment):
                 db = self.database_cmt
@@ -145,7 +147,7 @@ class RedditRover:
         and working for the main bot process.
         """
         # cleaning of the list
-        self.responders = list()
+        self.responders = []
         # preparing the right sub path.
         package = plugins
         prefix = package.__name__ + "."
@@ -210,7 +212,8 @@ class RedditRover:
                     self.comment_submission_action(thing, responder)
                 except HTTPException as e:
                     if self.catch_http_exception:
-                        self.logger.error('{} encountered: HTTPException - probably Reddits API.'.format(responder.BOT_NAME))
+                        self.logger.error('{} encountered: HTTPException - probably Reddits API.'.format(
+                            responder.BOT_NAME))
                     else:
                         raise e
                 except Exception as e:

@@ -28,7 +28,7 @@ the current bot configuration:
 .. code-block:: config
 
     [MyBotName]
-    description=This scans for the occurences of 'reddit'
+    description=This scans for the occurrences of 'reddit'
     is_logged_in=False
 
 Note that this config is only needed if you're using the standard config setup of the base class. More about builtin
