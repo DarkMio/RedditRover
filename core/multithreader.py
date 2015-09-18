@@ -1,6 +1,5 @@
 # coding=utf-8
 import threading
-import time
 
 
 class MultiThreader:

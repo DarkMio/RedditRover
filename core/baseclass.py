@@ -1,17 +1,17 @@
 # coding=utf-8
-from abc import ABCMeta, abstractmethod
-import logging
-from configparser import ConfigParser
-import re
-from time import time
+from core.decorators import retry
+from core.handlers import RoverHandler
 
-import praw
+from abc import ABCMeta, abstractmethod
+from configparser import ConfigParser
+from time import time
 from praw import handlers
 from pkg_resources import resource_filename
 from praw.errors import HTTPException
 
-from core.decorators import retry
-from core.handlers import RoverHandler
+import re
+import logging
+import praw
 
 
 class PluginBase(metaclass=ABCMeta):
