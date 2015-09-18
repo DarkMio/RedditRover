@@ -34,6 +34,12 @@ All other dependencies are standard builtins.
 
 .. end_installation
 
+Documentation
+-------------
+I've tried to document this bot as best as possible. The full documentation can be found here:
+`Documentation on Read The Docs <http://redditrover.readthedocs.org/>`_
+
+
 Debugging
 ---------
 Bot features are written in Abstract ``PluginBase Classes``. Inherit from it and execute one of the test functions:
