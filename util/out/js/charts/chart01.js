@@ -8,7 +8,7 @@ $(function () {
                 plotBorderWidth: null,
                 plotShadow: false,
                 type: 'pie',
-                renderTo: 'container'
+                renderTo: 'plugin-share'
             },
             title: {
                 text: ''

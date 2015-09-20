@@ -8,7 +8,7 @@ $(function () {
                 plotBorderWidth: null,
                 plotShadow: false,
                 type: 'pie',
-                renderTo: 'plugin-share'
+                renderTo: 'subreddit-share'
             },
             title: {
                 text: ''
@@ -32,7 +32,7 @@ $(function () {
             series: [{}]
         };
 
-        $.getJSON('post_list.json', function (data) {
+        $.getJSON('subreddit_data.json', function (data) {
             $.each(data, function (i, point) {
                 point.y = point.data;
             });

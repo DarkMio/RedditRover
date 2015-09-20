@@ -8,7 +8,7 @@ $(function () {
                 plotBorderWidth: null,
                 plotShadow: false,
                 type: 'pie',
-                renderTo: 'plugin-share'
+                renderTo: 'subreddit-share'
             },
             title: {
                 text: ''
@@ -23,7 +23,7 @@ $(function () {
                     dataLabels: {
                         enabled: false
                     },
-                    showInLegend: true
+                    showInLegend: false
                 }
             },
             credits: {
@@ -32,11 +32,10 @@ $(function () {
             series: [{}]
         };
 
-        $.getJSON('post_list.json', function (data) {
+        $.getJSON('subreddit_data.json', function (data) {
             $.each(data, function (i, point) {
                 point.y = point.data;
             });
-            console.log(data);
             options.series[0].data = data;
             var chart = new Highcharts.Chart(options);
         });

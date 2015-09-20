@@ -550,17 +550,18 @@ class Database:
     # From here out on are functions for the stat module which are currently in development. #
     ##########################################################################################
 
-    def add_to_stats(self, id, bot_name, time, title, username, permalink):
-        self.cur.execute('''INSERT INTO stats (id, bot_module, created, title, username, permalink)
+    def add_to_stats(self, id, bot_name, time, title, username, subreddit, permalink):
+        self.cur.execute('''INSERT INTO stats (id, bot_module, created, title, username, subreddit, permalink)
                             VALUES ((?),
                                    (SELECT _ROWID_ FROM modules WHERE module_name = (?)),
                                    DATETIME((?), 'unixepoch'),
                                    (?),
                                    (?),
-                                   (?))''', (id, bot_name, time, title, username, permalink))
+                                   (?),
+                                   (?))''', (id, bot_name, time, title, username, subreddit, permalink))
 
     def get_all_stats(self):
-        self.cur.execute("""SELECT id, module_name, created, title, username, permalink
+        self.cur.execute("""SELECT id, module_name, created, title, username, subreddit, permalink
                             FROM stats
                             INNER JOIN modules
                             ON bot_module = modules._ROWID_""")
@@ -587,7 +588,7 @@ class Database:
             else:
                 title = thing.submission.title
             carelist.append({'id': entry[0], 'bot_name': entry[1], 'time': entry[2], 'title': title,
-                             'username': author,
+                             'username': author, 'subreddit': thing.subreddit.display_name,
                              'permalink': thing.permalink})
             print('{}, '.format(i), end='', flush=True)
         for line in carelist:
