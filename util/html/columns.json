@@ -1,0 +1,5 @@
+[
+  {"name":"id","title":"ID","breakpoints":"xs sm","type":"number","style":{"width":80,"maxWidth":80}},
+  {"name":"plugin","title":"Bot Name"},
+  {"name":"permalink","title":"Perma link"},
+]
