@@ -8,7 +8,8 @@ $(function () {
                 plotBorderWidth: null,
                 plotShadow: false,
                 type: 'pie',
-                renderTo: 'subreddit-share'
+                renderTo: 'subreddit-share',
+                height: 300
             },
             title: {
                 text: ''

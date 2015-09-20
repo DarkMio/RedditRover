@@ -8,7 +8,8 @@ $(function () {
                 plotBorderWidth: null,
                 plotShadow: false,
                 type: 'pie',
-                renderTo: 'plugin-share'
+                renderTo: 'plugin-share',
+                height: 300
             },
             title: {
                 text: ''
@@ -23,7 +24,7 @@ $(function () {
                     dataLabels: {
                         enabled: false
                     },
-                    showInLegend: true
+                    showInLegend: false
                 }
             },
             credits: {
