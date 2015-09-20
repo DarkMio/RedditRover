@@ -82,6 +82,13 @@ class Database:
             )
             info('subbans')
 
+        if not self._database_check_if_exists('stats'):
+            self.cur.execute(
+                'CREATE TABLE IF NOT EXISTS stats '
+                '(id STR(10) NOT NULL, bot_module INT(5), created DATETIME, title STR(300), username STR(50), permalink STR(150))'
+            )
+            info('stats')
+
     def _database_check_if_exists(self, table_name):
         """
         Helper method to check if a certain table (by name) exists. Refrain from using it if you're not adding new
@@ -90,7 +97,7 @@ class Database:
         :type table_name: str
         :return: Tuple of the table name, empty if it doesn't exist.
         """
-        self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name=(?)', (table_name,))
+        self.cur.execute('SELECT name FROM sqlite_master WHERE  type="table" AND name=(?)', (table_name,))
         return self.cur.fetchone()
 
     def insert_into_storage(self, thing_id, module):
@@ -539,10 +546,58 @@ class Database:
         self.cur.execute("""DELETE FROM modules WHERE module_name = (?)""", (module,))
         self.logger.debug("{} got wiped from all tables and all its references.".format(module))
 
+    ##########################################################################################
+    # From here out on are functions for the stat module which are currently in development. #
+    ##########################################################################################
+
+    def add_to_stats(self, id, bot_name, time, title, username, permalink):
+        self.cur.execute('''INSERT INTO stats (id, bot_module, created, title, username, permalink)
+                            VALUES ((?),
+                                   (SELECT _ROWID_ FROM modules WHERE module_name = (?)),
+                                   DATETIME((?), 'unixepoch'),
+                                   (?),
+                                   (?),
+                                   (?))''', (id, bot_name, time, title, username, permalink))
+
+    def get_all_stats(self):
+        self.cur.execute("""SELECT id, module_name, created, title, username, permalink
+                            FROM stats
+                            INNER JOIN modules
+                            ON bot_module = modules._ROWID_""")
+        return self.cur.fetchall()
+
+    def migrate_storage(self):
+        from datetime import datetime as dt
+        from praw import Reddit
+        from praw.objects import Submission, Comment
+        r = Reddit(user_agent="Data migration one time operation")
+        carelist = []
+        full_set = self.get_all_storage()
+        full_set = [[entries[0], entries[1], int(dt.strptime(entries[2], '%Y-%m-%d %H:%M:%S').timestamp())] for entries
+                    in full_set]
+        for i, entry in enumerate(full_set):
+            thing = r.get_info(thing_id=entry[0])
+            ":type : Submission | Comment"
+            if type(thing.author) is type(None):
+                author = '[deleted]'
+            else:
+                author = thing.author.name
+            if isinstance(thing, Submission):
+                title = thing.title
+            else:
+                title = thing.submission.title
+            carelist.append({'id': entry[0], 'bot_name': entry[1], 'time': entry[2], 'title': title,
+                             'username': author,
+                             'permalink': thing.permalink})
+            print('{}, '.format(i), end='', flush=True)
+        for line in carelist:
+            self.add_to_stats(**line)
+        print(self.get_all_stats())
 
 if __name__ == "__main__":
     pass
-#   db = Database()
+    db = Database()
+    db.migrate_storage()
 #   thing_id = "t2_c384fd"
 #   module = "MassdropBot"
 #   user = "MioMoto"
