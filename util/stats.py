@@ -55,4 +55,18 @@ carelist = [dict for dict in carelist if dict['data'] > 2]
 with open('./out/subreddit_data.json', 'w') as f:
     f.write(json.dumps(carelist))
 
+carelist = []
+date_change_dataset = [[line[1], datetime.datetime.strptime(line[2], "%Y-%m-%d %H:%M:%S")] for line in dataset]
+post_history = {}
+for line in date_change_dataset:
+    timestamp = 1000 * int(line[1].timestamp())
+    if line[0] in post_history:
+        post_history[line[0]].append(timestamp)
+    else:
+        post_history[line[0]] = [timestamp]
+for k, v in post_history.items():
+    carelist.append({'name': k, 'data': v})
+with open('./out/post_history.json', 'w') as f:
+    f.write(json.dumps(carelist))
+
 print(dataset)
