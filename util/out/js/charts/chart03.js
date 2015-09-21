@@ -7,12 +7,15 @@ $(function () {
                 plotBackgroundColor: null,
                 plotBorderWidth: null,
                 plotShadow: false,
-                type: 'spline',
+                type: 'line',
                 renderTo: 'post-history',
                 height: 300
             },
             title: {
                 text: ''
+            },
+            rangeSelector : {
+                selected : 1
             },
             xAxis: {
               type: 'datetime',
@@ -50,10 +53,11 @@ $(function () {
                     var time = value['data'][point];
                     dataset.push([time, 1]);
                 }
-                options.series.push({'name': value['name'], 'data': dataset});
+                options.series.push({'name': value['name'], 'data': dataset, dataGrouping: {approximation: "sum"}
+                });
             });
             console.log(options.series);
-            var chart = new Highcharts.Chart(options);
+            var chart = new Highcharts.StockChart(options);
         });
 
     });
