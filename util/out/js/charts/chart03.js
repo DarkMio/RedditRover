@@ -14,6 +14,9 @@ $(function () {
             title: {
                 text: ''
             },
+            navigator : {
+                enabled : false
+            },
             rangeSelector : {
                 selected : 1
             },
@@ -23,9 +26,6 @@ $(function () {
                   month: '%e. %b',
                   year: '%b'
               }
-            },
-            tooltip: {
-                pointFormat: '<b>{point.y:.f} submissions</b>'
             },
             plotOptions: {
                 spline: {
@@ -53,7 +53,10 @@ $(function () {
                     var time = value['data'][point];
                     dataset.push([time, 1]);
                 }
-                options.series.push({'name': value['name'], 'data': dataset, dataGrouping: {approximation: "sum"}
+                options.series.push({'name': value['name'], 'data': dataset, dataGrouping: {
+                    approximation: "sum",
+                    forced: true,
+                    units: [['hour', [1, 2, 3, 6, 12]]]}
                 });
             });
             console.log(options.series);

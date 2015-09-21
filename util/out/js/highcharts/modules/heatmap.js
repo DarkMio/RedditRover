@@ -1,5 +1,5 @@
 /*
- Highcharts JS v4.1.8 (2015-08-20)
+ Highstock JS v2.1.8 (2015-08-20)
 
  (c) 2011-2014 Torstein Honsi
 

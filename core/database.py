@@ -567,6 +567,17 @@ class Database:
                             ON bot_module = modules._ROWID_""")
         return self.cur.fetchall()
 
+    def get_karma_loads(self):
+        self.cur.execute('''SELECT id FROM stats
+                            WHERE upvotes_author is NULL
+                            AND created < DATETIME('now', '-7 days')''')
+        return self.cur.fetchall()
+
+    def update_karma_count(self, thing_id, author_upvotes, plugin_upvotes):
+        self.cur.execute('''UPDATE stats
+                            SET upvotes_author = (?) AND upvotes_bot = (?)
+                            WHERE id = (?)''', (author_upvotes, plugin_upvotes, thing_id))
+
     def migrate_storage(self):
         from datetime import datetime as dt
         from praw import Reddit
@@ -598,7 +609,7 @@ class Database:
 if __name__ == "__main__":
     pass
     db = Database()
-    db.migrate_storage()
+    print(db.get_karma_loads())
 #   thing_id = "t2_c384fd"
 #   module = "MassdropBot"
 #   user = "MioMoto"
