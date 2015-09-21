@@ -85,7 +85,9 @@ class Database:
         if not self._database_check_if_exists('stats'):
             self.cur.execute(
                 'CREATE TABLE IF NOT EXISTS stats '
-                '(id STR(10) NOT NULL, bot_module INT(5), created DATETIME, title STR(300), username STR(50), permalink STR(150))'
+                '(id STR(10) NOT NULL, bot_module INT(5),'
+                ' created DATETIME, title STR(300), username STR(50), '
+                ' permalink STR(150), subreddit STR(50), upvotes_author INT(5), upvotes_bot INT(5))'
             )
             info('stats')
 
@@ -609,7 +611,7 @@ class Database:
 if __name__ == "__main__":
     pass
     db = Database()
-    print(db.get_karma_loads())
+    db.migrate_storage()
 #   thing_id = "t2_c384fd"
 #   module = "MassdropBot"
 #   user = "MioMoto"

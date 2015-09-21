@@ -28,6 +28,12 @@ class StatisticsFeeder:
                     self.db.update_karma_count(thing_id, author_votes, comment.votes)
 
     def render_json(self):
+        self._table_rows()
+        self._plugin_activity()
+        self._subreddit_activity()
+        self._post_histogram()
+
+    def _table_rows(self):
         dataset = db.get_all_stats()
         carelist = []
         title = '<a href="{url}" target="_blank" class="text-primary"> {text} </a>'
@@ -40,6 +46,8 @@ class StatisticsFeeder:
         with open('./out/rows.json', 'w') as f:
             f.write(json.dumps(carelist))
 
+    def _plugin_activity(self):
+        dataset = db.get_all_stats()
         chart_data = {}
         for line in dataset:
             if line[1] in chart_data:
@@ -49,10 +57,11 @@ class StatisticsFeeder:
         carelist = []
         for k, v in chart_data.items():
             carelist.append({'name': k, 'data': v})
-
         with open('./out/post_list.json', 'w') as f:
             f.write(json.dumps(carelist))
 
+    def _subreddit_activity(self):
+        dataset = db.get_all_stats()
         carelist = []
         subreddit_data = {}
         for line in dataset:
@@ -67,19 +76,33 @@ class StatisticsFeeder:
         with open('./out/subreddit_data.json', 'w') as f:
             f.write(json.dumps(carelist))
 
+    def _post_histogram(self):
+        dataset = db.get_all_stats()
         carelist = []
         date_change_dataset = [[line[1], datetime.datetime.strptime(line[2], "%Y-%m-%d %H:%M:%S")] for line in dataset]
         post_history = {}
         for line in date_change_dataset:
-            timestamp = 1000 * int(line[1].timestamp())
+            timestamp = int(line[1].timestamp()) // 3600
             if line[0] in post_history:
-                post_history[line[0]].append(timestamp)
+                if timestamp in post_history[line[0]]:
+                    post_history[line[0]][timestamp] += 1
+                else:
+                    post_history[line[0]][timestamp] = 1
             else:
-                post_history[line[0]] = [timestamp]
+                post_history[line[0]] = {timestamp: 1}
+        for key, value in post_history.items():
+            all_values = sorted(value.items())
+            start, end = all_values[0][0], all_values[-1][0]
+            for x in range(start, end+1):
+                if x not in value:
+                    value[x] = 0
         for k, v in post_history.items():
-            carelist.append({'name': k, 'data': v})
+            some_list = []
+            for key, value in sorted(v.items()):
+                some_list.append([key*3600*1000, value])
+            carelist.append({'name': k, 'data': some_list})
         with open('./out/post_history.json', 'w') as f:
             f.write(json.dumps(carelist))
 
 sf = StatisticsFeeder(db, None)
-sf.get_old_comment_karma()
+sf.render_json()

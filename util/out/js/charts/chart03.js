@@ -49,15 +49,9 @@ $(function () {
             console.log('And now:');
             $.each(data, function (key, value) {
                 var dataset = Array();
-                for(var point in value['data']) {
-                    var time = value['data'][point];
-                    dataset.push([time, 1]);
-                }
-                options.series.push({'name': value['name'], 'data': dataset, dataGrouping: {
-                    approximation: "sum",
-                    forced: true,
-                    units: [['hour', [1, 2, 3, 6, 12]]]}
-                });
+                dataset.push(value);
+                console.log(value);
+                options.series.push({'name': value['name'], 'data': value['data'], connectEnds: false});
             });
             console.log(options.series);
             var chart = new Highcharts.StockChart(options);
