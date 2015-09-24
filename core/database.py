@@ -563,7 +563,8 @@ class Database:
                                    (?))''', (id, bot_name, time, title, username, subreddit, permalink))
 
     def get_all_stats(self):
-        self.cur.execute("""SELECT id, module_name, created, title, username, subreddit, permalink
+        self.cur.execute("""SELECT id, module_name, created, title, username, subreddit,
+                                   permalink, upvotes_author, upvotes_bot
                             FROM stats
                             INNER JOIN modules
                             ON bot_module = modules._ROWID_""")
@@ -572,12 +573,12 @@ class Database:
     def get_karma_loads(self):
         self.cur.execute('''SELECT id FROM stats
                             WHERE upvotes_author is NULL
-                            AND created < DATETIME('now', '-7 days')''')
+                            AND created < DATETIME('now', '-7 hours')''')
         return self.cur.fetchall()
 
     def update_karma_count(self, thing_id, author_upvotes, plugin_upvotes):
         self.cur.execute('''UPDATE stats
-                            SET upvotes_author = (?) AND upvotes_bot = (?)
+                            SET upvotes_author = (?), upvotes_bot = (?)
                             WHERE id = (?)''', (author_upvotes, plugin_upvotes, thing_id))
 
     def migrate_storage(self):

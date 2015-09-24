@@ -5,6 +5,7 @@ import json
 import time
 import datetime
 from praw import Reddit
+from praw.objects import Submission, Comment
 
 db = Database()
 
@@ -15,17 +16,28 @@ class StatisticsFeeder:
     """
     def __init__(self, database, handler):
         self.db = database
-        self.session = Reddit(user_agent='Statistics poller for RedditRover', handler=handler)
+        # self.session = Reddit(user_agent='Statistics poller for RedditRover', handler=handler)
 
     def get_old_comment_karma(self):
         threads = self.db.get_karma_loads()
         for thread in threads:  # tuple of tuple
             thing_id = thread[0]
             thing = self.session.get_info(thing_id=thing_id)
-            author_votes = thing.upvotes
-            for comment in thing.comments:
+            author_votes = thing.score
+            if type(thing) is Comment:
+                replies = thing.replies
+            elif type(thing) is Submission:
+                replies = thing.comments
+            for comment in replies:
                 if comment.author in self.db.get_all_modules():
-                    self.db.update_karma_count(thing_id, author_votes, comment.votes)
+                    self.db.update_karma_count(thing_id, author_votes, comment.score)
+
+    def _write_filler_karma(self):
+        from random import randint
+        threads = self.db.get_karma_loads()
+        for thread in threads:
+            thread_id = thread[0]
+            self.db.update_karma_count(thread_id, randint(-50, 350), randint(-50, 350))
 
     def render_json(self):
         self._table_rows()
@@ -42,7 +54,8 @@ class StatisticsFeeder:
         for line in dataset:
             carelist.append({'id': line[0], 'plugin': line[1], 'time': line[2],
                              'title': title.format(url=line[6], text=line[3]), 'username': author.format(usr=line[4]),
-                             'subreddit': subreddit.format(sub=line[5]), 'permalink': line[6]})
+                             'subreddit': subreddit.format(sub=line[5]), 'permalink': line[6],
+                             'upvotes_author': line[7], 'upvotes_plugin': line[8], 'upvotes_difference': line[8] - line[7]})
         with open('./out/rows.json', 'w') as f:
             f.write(json.dumps(carelist))
 
@@ -104,5 +117,7 @@ class StatisticsFeeder:
         with open('./out/post_history.json', 'w') as f:
             f.write(json.dumps(carelist))
 
-sf = StatisticsFeeder(db, None)
-sf.render_json()
+if __name__ == "__main__":
+    sf = StatisticsFeeder(db, None)
+    sf._write_filler_karma()
+    sf.render_json()
