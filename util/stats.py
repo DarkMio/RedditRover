@@ -7,7 +7,6 @@ import datetime
 from praw import Reddit
 from praw.objects import Submission, Comment
 
-db = Database()
 
 class StatisticsFeeder:
     """
@@ -39,28 +38,37 @@ class StatisticsFeeder:
             thread_id = thread[0]
             self.db.update_karma_count(thread_id, randint(-50, 350), randint(-50, 350))
 
-    def render_json(self):
+    def render_overview(self):
         self._table_rows()
         self._plugin_activity()
         self._subreddit_activity()
         self._post_histogram()
 
     def _table_rows(self):
-        dataset = db.get_all_stats()
+        dataset = self.db.get_all_stats()
         carelist = []
         title = '<a href="{url}" target="_blank" class="text-primary"> {text} </a>'
         subreddit = '<a href="http://reddit.com/r/{sub}" target="_blank" class="text-warning"> {sub} </a>'
         author = '<a href="http://reddit.com/u/{usr}" target="_blank"> {usr} </a>'
         for line in dataset:
+            if line[8] and line[7]:
+                result = line[8] - line[7]
+                line_7 = line[7]
+                line_8 = line[8]  # @TODO: Better variable assignment
+            else:
+                line_7 = '-'
+                line_8 = '-'
+                result = '-'
             carelist.append({'id': line[0], 'plugin': line[1], 'time': line[2],
                              'title': title.format(url=line[6], text=line[3]), 'username': author.format(usr=line[4]),
                              'subreddit': subreddit.format(sub=line[5]), 'permalink': line[6],
-                             'upvotes_author': line[7], 'upvotes_plugin': line[8], 'upvotes_difference': line[8] - line[7]})
+                             'upvotes_author': line_7, 'upvotes_plugin': line_8, 'upvotes_difference': result})
+
         with open('./out/rows.json', 'w') as f:
             f.write(json.dumps(carelist))
 
     def _plugin_activity(self):
-        dataset = db.get_all_stats()
+        dataset = self.db.get_all_stats()
         chart_data = {}
         for line in dataset:
             if line[1] in chart_data:
@@ -74,7 +82,9 @@ class StatisticsFeeder:
             f.write(json.dumps(carelist))
 
     def _subreddit_activity(self):
-        dataset = db.get_all_stats()
+        def tighten_filter(list, min_submissions):
+            return [dict for dict in list if dict['data'] > min_submissions]
+        dataset = self.db.get_all_stats()
         carelist = []
         subreddit_data = {}
         for line in dataset:
@@ -85,15 +95,19 @@ class StatisticsFeeder:
         for k, v in subreddit_data.items():
             carelist.append({'name': k, 'data': v})
         carelist = sorted(carelist, key=lambda x: x['data'])
-        carelist = [dict for dict in carelist if dict['data'] > 2]
+        i = 0
+        while(len(carelist) > 16):
+            carelist = tighten_filter(carelist, i)
+            i += 1
         with open('./out/subreddit_data.json', 'w') as f:
             f.write(json.dumps(carelist))
 
     def _post_histogram(self):
-        dataset = db.get_all_stats()
+        dataset = self.db.get_all_stats()
         carelist = []
         date_change_dataset = [[line[1], datetime.datetime.strptime(line[2], "%Y-%m-%d %H:%M:%S")] for line in dataset]
         post_history = {}
+        # Insert all data in hourly ticks
         for line in date_change_dataset:
             timestamp = int(line[1].timestamp()) // 3600
             if line[0] in post_history:
@@ -103,21 +117,66 @@ class StatisticsFeeder:
                     post_history[line[0]][timestamp] = 1
             else:
                 post_history[line[0]] = {timestamp: 1}
+        # Sort values and insert nil-values so the graphs are accurate per tick
         for key, value in post_history.items():
             all_values = sorted(value.items())
             start, end = all_values[0][0], all_values[-1][0]
-            for x in range(start, end+1):
+            for x in range(start, end + 1):
                 if x not in value:
                     value[x] = 0
+        # transform the data again to get simple json for js - also transform timestamp to js readable
         for k, v in post_history.items():
             some_list = []
             for key, value in sorted(v.items()):
-                some_list.append([key*3600*1000, value])
+                some_list.append([key * 3600 * 1000, value])
             carelist.append({'name': k, 'data': some_list})
+        # write out
         with open('./out/post_history.json', 'w') as f:
             f.write(json.dumps(carelist))
 
+    def render_karma(self):
+        self._total_karma()
+        self._average_karma()
+
+    def _total_karma(self):
+        dataset = self.db.get_all_stats()
+        caredict = {}
+        carelist = []
+        for line in dataset:
+            if not line[8]:
+                karma = 0
+            else:
+                karma = line[8]
+            if line[1] in caredict:
+                caredict[line[1]] += karma
+            else:
+                caredict[line[1]] = karma
+        for key, value in caredict.items():
+            carelist.append({'name': key, 'data': value})
+        with open('./out/_data/total_karma.json', 'w+') as f:
+            f.write(json.dumps(carelist))
+
+    def _average_karma(self):
+        dataset = self.db.get_all_stats()
+        caredict = {}
+        carelist = []
+        for line in dataset:
+            if not line[8]:
+                karma = 0
+            else:
+                karma = line[8]
+            if line[1] in caredict:
+                caredict[line[1]] = [caredict[line[1]][0] + karma, caredict[line[1]][1] + 1]
+            else:
+                caredict[line[1]] = [karma, 1]
+        for key, value in caredict.items():
+            carelist.append({'name': key, 'data': value[0] / value[1]})
+        with open('./out/_data/average_karma.json', 'w+') as f:
+            f.write(json.dumps(carelist))
+
 if __name__ == "__main__":
+    db = Database()
     sf = StatisticsFeeder(db, None)
     sf._write_filler_karma()
-    sf.render_json()
+    sf.render_overview()
+    sf.render_karma()

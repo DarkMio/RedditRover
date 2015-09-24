@@ -573,7 +573,7 @@ class Database:
     def get_karma_loads(self):
         self.cur.execute('''SELECT id FROM stats
                             WHERE upvotes_author is NULL
-                            AND created < DATETIME('now', '-7 hours')''')
+                            AND created < DATETIME('now', '-7 hours')''')  # @TODO: Make that 7 days again
         return self.cur.fetchall()
 
     def update_karma_count(self, thing_id, author_upvotes, plugin_upvotes):
