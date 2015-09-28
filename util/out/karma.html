@@ -122,8 +122,8 @@
     <script type="text/javascript">
         jQuery(function($){
             $('.table').footable({
-                "columns": $.get('karma_columns.json'),
-                "rows": $.get('rows.json')
+                "columns": $.get('./_data/_karma_columns.json?v='+Math.random()),
+                "rows": $.get('./_data/overview_rows.json?v='+Math.random())
             });
         });
     </script>

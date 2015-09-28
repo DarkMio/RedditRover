@@ -1,11 +1,11 @@
 # coding=utf-8
-import jinja2
 from core.database import Database
 import json
-import time
 import datetime
 from praw import Reddit
-from praw.objects import Submission, Comment
+from praw.objects import Submission, Comment, MoreComments
+from configparser import ConfigParser
+from pkg_resources import resource_filename
 
 
 class StatisticsFeeder:
@@ -13,9 +13,21 @@ class StatisticsFeeder:
     :type db: Database
     :type session: Reddit
     """
-    def __init__(self, database, handler):
+    def __init__(self, database, handler, path='./out/'):
         self.db = database
-        # self.session = Reddit(user_agent='Statistics poller for RedditRover', handler=handler)
+        self.path = path
+        self.session = Reddit(user_agent='Statistics poller for RedditRover', handler=handler)
+        self.config = ConfigParser()
+        self.config.read(resource_filename('config', 'bot_config.ini'))
+        self.authors = self.get_authors()
+
+    def get_authors(self):
+        carelist = []
+        for section in self.config.sections():
+            for option in self.config.options(section):
+                if option == 'username':
+                    carelist.append(self.config.get(section, option).lower())
+        return carelist
 
     def get_old_comment_karma(self):
         threads = self.db.get_karma_loads()
@@ -26,10 +38,16 @@ class StatisticsFeeder:
             if type(thing) is Comment:
                 replies = thing.replies
             elif type(thing) is Submission:
+                thing.replace_more_comments(limit=None, threshold=1)
                 replies = thing.comments
+            elif type(thing) is MoreComments:
+                replies = thing.comments(update=True)
             for comment in replies:
-                if comment.author in self.db.get_all_modules():
+                if comment.author and comment.author.name.lower() in self.authors:
                     self.db.update_karma_count(thing_id, author_votes, comment.score)
+                    break
+            else:
+                self.db.update_karma_count_with_null(thing_id, author_votes)
 
     def _write_filler_karma(self):
         from random import randint
@@ -64,7 +82,7 @@ class StatisticsFeeder:
                              'subreddit': subreddit.format(sub=line[5]), 'permalink': line[6],
                              'upvotes_author': line_7, 'upvotes_plugin': line_8, 'upvotes_difference': result})
 
-        with open('./out/rows.json', 'w') as f:
+        with open(self.path + '_data/overview_rows.json', 'w') as f:
             f.write(json.dumps(carelist))
 
     def _plugin_activity(self):
@@ -78,7 +96,7 @@ class StatisticsFeeder:
         carelist = []
         for k, v in chart_data.items():
             carelist.append({'name': k, 'data': v})
-        with open('./out/post_list.json', 'w') as f:
+        with open(self.path + '_data/post_list.json', 'w') as f:
             f.write(json.dumps(carelist))
 
     def _subreddit_activity(self):
@@ -99,7 +117,7 @@ class StatisticsFeeder:
         while(len(carelist) > 16):
             carelist = tighten_filter(carelist, i)
             i += 1
-        with open('./out/subreddit_data.json', 'w') as f:
+        with open(self.path + '_data/subreddit_data.json', 'w') as f:
             f.write(json.dumps(carelist))
 
     def _post_histogram(self):
@@ -109,7 +127,8 @@ class StatisticsFeeder:
         post_history = {}
         # Insert all data in hourly ticks
         for line in date_change_dataset:
-            timestamp = int(line[1].timestamp()) // 3600
+            # Yay, <= py3.2 doesn't have datetime.timestamp()
+            timestamp = int((line[1] - datetime.datetime.utcfromtimestamp(0)).total_seconds()) // 3600
             if line[0] in post_history:
                 if timestamp in post_history[line[0]]:
                     post_history[line[0]][timestamp] += 1
@@ -131,7 +150,7 @@ class StatisticsFeeder:
                 some_list.append([key * 3600 * 1000, value])
             carelist.append({'name': k, 'data': some_list})
         # write out
-        with open('./out/post_history.json', 'w') as f:
+        with open(self.path + '_data/post_history.json', 'w') as f:
             f.write(json.dumps(carelist))
 
     def render_karma(self):
@@ -153,7 +172,7 @@ class StatisticsFeeder:
                 caredict[line[1]] = karma
         for key, value in caredict.items():
             carelist.append({'name': key, 'data': value})
-        with open('./out/_data/total_karma.json', 'w+') as f:
+        with open(self.path + '_data/total_karma.json', 'w+') as f:
             f.write(json.dumps(carelist))
 
     def _average_karma(self):
@@ -171,12 +190,13 @@ class StatisticsFeeder:
                 caredict[line[1]] = [karma, 1]
         for key, value in caredict.items():
             carelist.append({'name': key, 'data': value[0] / value[1]})
-        with open('./out/_data/average_karma.json', 'w+') as f:
+        with open(self.path + '_data/average_karma.json', 'w+') as f:
             f.write(json.dumps(carelist))
 
 if __name__ == "__main__":
     db = Database()
     sf = StatisticsFeeder(db, None)
-    sf._write_filler_karma()
+    sf.get_old_comment_karma()
+    # sf._write_filler_karma()
     sf.render_overview()
     sf.render_karma()

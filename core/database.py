@@ -552,15 +552,15 @@ class Database:
     # From here out on are functions for the stat module which are currently in development. #
     ##########################################################################################
 
-    def add_to_stats(self, id, bot_name, time, title, username, subreddit, permalink):
+    def add_to_stats(self, id, bot_name, title, username, subreddit, permalink):
         self.cur.execute('''INSERT INTO stats (id, bot_module, created, title, username, subreddit, permalink)
                             VALUES ((?),
                                    (SELECT _ROWID_ FROM modules WHERE module_name = (?)),
-                                   DATETIME((?), 'unixepoch'),
+                                   DATETIME('now'),
                                    (?),
                                    (?),
                                    (?),
-                                   (?))''', (id, bot_name, time, title, username, subreddit, permalink))
+                                   (?))''', (id, bot_name, title, username, subreddit, permalink))
 
     def get_all_stats(self):
         self.cur.execute("""SELECT id, module_name, created, title, username, subreddit,
@@ -573,13 +573,16 @@ class Database:
     def get_karma_loads(self):
         self.cur.execute('''SELECT id FROM stats
                             WHERE upvotes_author is NULL
-                            AND created < DATETIME('now', '-7 hours')''')  # @TODO: Make that 7 days again
+                            AND created < DATETIME('now', '-7 days')''')
         return self.cur.fetchall()
 
     def update_karma_count(self, thing_id, author_upvotes, plugin_upvotes):
         self.cur.execute('''UPDATE stats
                             SET upvotes_author = (?), upvotes_bot = (?)
                             WHERE id = (?)''', (author_upvotes, plugin_upvotes, thing_id))
+
+    def update_karma_count_with_null(self, thing_id, author_upvotes):
+        self.cur.execute('''UPDATE stats SET upvotes_author = (?) WHERE id = (?)''', (author_upvotes, thing_id))
 
     def migrate_storage(self):
         from datetime import datetime as dt

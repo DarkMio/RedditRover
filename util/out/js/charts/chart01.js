@@ -33,7 +33,7 @@ $(function () {
             series: [{}]
         };
 
-        $.getJSON('post_list.json', function (data) {
+        $.getJSON('./_data/post_list.json', function (data) {
             $.each(data, function (i, point) {
                 point.y = point.data;
             });

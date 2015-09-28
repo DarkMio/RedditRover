@@ -119,8 +119,8 @@
     <script type="text/javascript">
         jQuery(function($){
             $('.table').footable({
-                "columns": $.get('columns.json'),
-                "rows": $.get('rows.json')
+                "columns": $.get('./_data/_overview_columns.json?v=' + Math.floor(Math.random()*100*100*100)),
+                "rows": $.get('./_data/overview_rows.json?v=' + Math.random())
             });
         });
     </script>

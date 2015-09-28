@@ -1,9 +1,0 @@
-[
-  {"name":"id","title":"ID","filterable":false,"style":{"width":"40px"}},
-  {"name":"plugin","title":"Bot Name","style":{"width":"auto"}},
-  {"name":"time","title":"Time of post","filterable":false,"style":{"width":"154px"}},
-  {"name":"title","title":"Post Title"},
-  {"name":"subreddit","title":"Subreddit"},
-  {"name":"username","title":"Author", "style":{"width":"auto"}},
-  {"name":"permalink","title":"Permalink","visible":false}
-]

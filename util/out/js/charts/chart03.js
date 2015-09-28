@@ -45,7 +45,7 @@ $(function () {
 
 
 
-        $.getJSON('post_history.json', function (data) {
+        $.getJSON('./_data/post_history.json', function (data) {
             console.log('And now:');
             $.each(data, function (key, value) {
                 var dataset = Array();

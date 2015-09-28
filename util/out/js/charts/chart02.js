@@ -33,7 +33,7 @@ $(function () {
             series: [{}]
         };
 
-        $.getJSON('subreddit_data.json', function (data) {
+        $.getJSON('./_data/subreddit_data.json', function (data) {
             $.each(data, function (i, point) {
                 point.y = point.data;
             });
