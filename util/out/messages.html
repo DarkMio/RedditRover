@@ -24,15 +24,9 @@
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
     <script src="./js/jquery1.9.1.min.js"></script>
-    <script src="./js/highcharts/highstock.js"></script>
-    <script src="./js/highcharts/themes/grid-light.js" type="text/javascript"></script>
     <script src="./footable/moment.js" type="text/javascript"></script>
     <link href="./footable/footable.bootstrap.css" rel="stylesheet" type="text/css" />
     <script src="./footable/footable.js" type="text/javascript"></script>
-
-    <script src="./js/charts/chart01.js" type="text/javascript"></script>
-    <script src="./js/charts/chart02.js" type="text/javascript"></script>
-    <script src="./js/charts/chart03.js" type="text/javascript"></script>
   </head>
 
   <body>
@@ -66,9 +60,9 @@
       <div class="row">
         <div class="col-sm-3 col-md-2 sidebar">
           <ul class="nav nav-sidebar">
-            <li class="active"><a href="#">Overview <span class="sr-only">(current)</span></a></li>
+            <li><a href="./index.html">Overview</a></li>
             <li><a href="./karma.html">Karma Statistics</a></li>
-            <li><a href="./messages.html">Messages</a></li>
+            <li class="active"><a href="#">Messages <span class="sr-only">(current)</span></a></li>
             <li><a href="./log.html">System Logs</a></li>
           </ul>
           <ul class="nav nav-sidebar">
@@ -86,26 +80,6 @@
         </div>
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
           <h1 class="page-header">Dashboard</h1>
-
-          <div class="row placeholders">
-            <div class="col-xs-6 col-sm-3 placeholder">
-              <div id="plugin-share"></div>
-              <h4>Post Shares per Plugin</h4>
-              <span class="text-muted">Some text</span>
-            </div>
-            <div class="col-xs-6 col-sm-3 placeholder">
-              <div id="subreddit-share"></div>
-              <h4>Subreddit Shares across all Plugins</h4>
-              <span class="text-muted">only showing over 2 posts per sub</span>
-            </div>
-            <div class="col-xs-12 col-sm-6 placeholder">
-              <div id="post-history"></div>
-              <h4>Post History</h4>
-              <span class="text-muted">hover over, grouping by one hour</span>
-            </div>
-          </div>
-
-          <h2 class="sub-header">Section title</h2>
           <div class="table table-responsive">
             <table class="table" data-paging="true" data-sorting="true" data-filtering="true"></table>
           </div>
@@ -119,8 +93,8 @@
     <script type="text/javascript">
         jQuery(function($){
             $('.table').footable({
-                "columns": $.get('./_data/_overview_columns.json?v=' + Math.floor(Math.random()*100*100*100)),
-                "rows": $.get('./_data/overview_rows.json?v=' + Math.random())
+                "columns": $.get('./_data/_message_columns.json?v='+Math.random()),
+                "rows": $.get('./_data/message_rows.json?v='+Math.random())
             });
         });
     </script>
