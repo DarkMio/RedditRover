@@ -73,8 +73,8 @@ class RedditRover:
         self.config = ConfigParser()
         self.config.read(resource_filename('config', 'bot_config.ini'))
         self.mark_as_read, self.catch_http_exception, self.delete_after, self.verbose, self.update_interval, \
-            subreddit = self._bot_variables()
-        self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose])
+            subreddit, web_log_path = self._bot_variables()
+        self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose], web_log_path=web_log_path)
         self.multi_thread = MultiThreader()
         self.lock = self.multi_thread.get_lock()
         self.database_update = Database()
@@ -110,7 +110,7 @@ class RedditRover:
         get_i = lambda x: self.config.getint('RedditRover', x)
         get = lambda x: self.config.get('RedditRover', x)
         return get_b('mark_as_read'), get_b('catch_http_exception'), get_i('delete_after'), get_b('verbose'),\
-            get_i('update_interval'), get('subreddit')
+            get_i('update_interval'), get('subreddit'), get('web_log_path')
 
     def _filter_single_thing(self, thing, responder):
         """
@@ -298,6 +298,7 @@ class RedditRover:
                 self.stats.get_old_comment_karma()
                 self.stats.render_overview()
                 self.stats.render_karma()
+                self.stats.render_messages()
             except:
                 pass
             self.database_update.clean_up_database(int(time()) - int(self.delete_after))

@@ -193,6 +193,24 @@ class StatisticsFeeder:
         with open(self.path + '_data/average_karma.json', 'w+') as f:
             f.write(json.dumps(carelist))
 
+    def render_messages(self):
+        self._message_rows()
+
+    def _message_rows(self):
+        carelist = []
+        messages = self.db.get_all_messages()
+        message_template = 'You\'ve mailed my bot here: http://reddit.com/message/messages/{msg_id}%0A%0A---%0A%0A'
+        url_template = 'http://reddit.com/message/compose/?to={author}&subject={subject}&body={msg_template}'
+        reply_template = '<a href="{answer_url}"> {body} </a>'
+        for line in messages:
+            msg = message_template.format(msg_id=line[0])
+            url = url_template.format(author=line[4], subject=line[3], msg_template=msg)
+            reply = reply_template.format(answer_url=url, body=line[5])
+            carelist.append({'id': line[0], 'bot_module': line[1], 'created': line[2], 'title': line[3],
+                             'author': line[4], 'body': reply})
+        with open(self.path + '_data/overview_rows.json', 'w') as f:
+            f.write(json.dumps(carelist))
+
 if __name__ == "__main__":
     db = Database()
     sf = StatisticsFeeder(db, None)

@@ -261,6 +261,9 @@ class PluginBase(metaclass=ABCMeta):
                     if mark_as_read:
                         msg.mark_as_read()
                     self.on_new_message(msg)
+                    if not msg.was_comment and not msg.author.name.lower() == 'automoderator':
+                        self.database.add_message(msg.id, self.BOT_NAME, msg.created_utc,
+                                                  msg.subject, msg.author.name, msg.body)
             except AssertionError:
                 pass
 

@@ -91,6 +91,13 @@ class Database:
             )
             info('stats')
 
+        if not self._database_check_if_exists('messages'):
+            self.cur.execute(
+                '''CREATE TABLE IF NOT EXISTS messages
+                      (id STR(10) NOT NULL, bot_module INT(5), created DATETIME, title STR(300),
+                       author STR(50), body STR)'''
+            )
+
     def _database_check_if_exists(self, table_name):
         """
         Helper method to check if a certain table (by name) exists. Refrain from using it if you're not adding new
@@ -611,6 +618,19 @@ class Database:
         for line in carelist:
             self.add_to_stats(**line)
         print(self.get_all_stats())
+
+    def add_message(self, msg_id, bot_module, created, username, title, body):
+        self.cur.execute('''INSERT INTO messages (id, bot_module, created, title, author, body)
+                            VALUES ( (?),
+                                     (SELECT _ROWID_ FROM modules WHERE module_name = (?)),
+                                     DATETIME((?), 'unixepoch'),
+                                     (?),
+                                     (?),
+                                     (?)) ''', (msg_id, bot_module, created, username, title, body))
+
+    def get_all_messages(self):
+        self.cur.execute('SELECT * FROM messages')
+        return self.cur.fetchall()
 
 if __name__ == "__main__":
     pass
