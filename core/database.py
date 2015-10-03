@@ -44,14 +44,11 @@ class Database:
         self.cur = self.db.cursor()
         self.database_init()
         self._meta_push = {'submissions': 0, 'comments': 0, 'cycles': 0}
-        self._MAX_CACHE = 150
+        self._MAX_CACHE = 500
         self._date = time.time() // (60 * 60)
         atexit.register(self.write_out_meta_push, force=True)  # When the database gets closed, write out the meta
-        atexit.register(self.db.close)                         # Then close the database
-
-    def __del__(self):
-        self.db.close()
-        self.logger.warning("DB connection has been closed.")
+        # atexit.register(self.db.close)
+        atexit.register(self.logger.warning, "DB connection has been closed.")
 
     def database_init(self):
         """
@@ -601,6 +598,12 @@ class Database:
                             ON bot_module = modules._ROWID_""")
         return self.cur.fetchall()
 
+    def get_length_at_day(self, timestamp):
+        self.cur.execute('''SELECT count(*) FROM stats
+                            WHERE created BETWEEN DATE((?), 'unixepoch') AND DATE((?), 'unixepoch', '+1 day')''',
+                         (timestamp, timestamp))
+        return self.cur.fetchone()
+
     def get_karma_loads(self):
         self.cur.execute('''SELECT id FROM stats
                             WHERE upvotes_author is NULL
@@ -631,9 +634,7 @@ class Database:
                             ''')
         return self.cur.fetchall()
 
-    def _select_day_from_meta(self, timestamp):
-        day_divisior = 60 * 60 * 24
-        day_stamp = timestamp // day_divisior * day_divisior  # in place if DATE(xx, unixepoch) shouldn't work.
+    def select_day_from_meta(self, timestamp):
         self.cur.execute('''SELECT * FROM meta_stats WHERE day = DATE((?), 'unixepoch')''', (timestamp,))
         return self.cur.fetchone()
 
@@ -667,7 +668,7 @@ class Database:
             self._date = time.time() // 3600
 
     def _add_submission_to_meta(self, count, timestamp):
-        if not self._select_day_from_meta(timestamp):
+        if not self.select_day_from_meta(timestamp):
             self.cur.execute('''INSERT INTO meta_stats (day, seen_submissions)
                                   VALUES (DATE((?), 'unixepoch'), (?))''', (timestamp, count))
         else:
@@ -675,7 +676,7 @@ class Database:
                                 WHERE day = DATE((?), 'unixepoch')''', (count, timestamp))
 
     def _add_comment_to_meta(self, count, timestamp):
-        if not self._select_day_from_meta(timestamp):
+        if not self.select_day_from_meta(timestamp):
             self.cur.execute('''INSERT INTO meta_stats (day, seen_comments)
                                   VALUES (DATE((?), 'unixepoch'), (?))'''), (timestamp, count)
         else:
@@ -683,7 +684,7 @@ class Database:
                                 WHERE day = DATE((?), 'unixepoch')''', (count, timestamp))
 
     def _add_update_cycle_to_meta(self, count, timestamp):
-        if not self._select_day_from_meta(timestamp):
+        if not self.select_day_from_meta(timestamp):
             self.cur.execute('''INSERT INTO meta_stats (day, update_cycles)
                                  VALUES (DATE((?), 'unixepoch'), (?))''', (timestamp, count))
         else:
@@ -693,14 +694,8 @@ class Database:
 
 if __name__ == "__main__":
     db = Database()
-    from random import randint
-    for x in range(1000):
-        submissions = randint(0, 50)
-        comments = randint(0, 50)
-        cycles = randint(0, 50)
-        db.add_comment_to_meta(comments)
-        db.add_submission_to_meta(submissions)
-        db.add_update_cycle_to_meta(cycles)
+    print(db.get_length_at_day(time.time() - 86400))
+
 #   thing_id = "t2_c384fd"
 #   module = "MassdropBot"
 #   user = "MioMoto"

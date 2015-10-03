@@ -41,10 +41,10 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
-            <li><a href="#">Dashboard</a></li>
-            <li><a href="#">Settings</a></li>
-            <li><a href="#">Profile</a></li>
-            <li><a href="#">Help</a></li>
+            <li><a href="#">Submissions seen: <span id="submissions"></span></a></li>
+            <li><a href="#">Comments seen: <span id="comments"></span></a></li>
+            <li><a href="#">Update Cycles: <span id="cycles"></span></a></li>
+            <li><a href="#">Reaction Rate: <span id="rate"></span>%</a></li>
           </ul>
         </div>
       </div>
@@ -85,6 +85,16 @@
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     <script type="text/javascript">
+        function populate_meta () {
+            $.get('./_data/_meta.json', function (data) {
+                $('#status').html(data['status']);
+                $('#submissions').html(data['submissions']);
+                $('#comments').html(data['comments']);
+                $('#cycles').html(data['cycles']);
+                $('#rate').html(data['rate']);
+            });
+        }
+
         function datasetter () {
             $.get('./_data/weblog.txt', function (data) {
                 data = data.split('\n');
@@ -94,12 +104,12 @@
             });
         }
         $(document).ready(function() {
+          populate_meta();
           datasetter();
-          $('#status').load('./_data/_meta.json')
         });
         setInterval(function() {
           datasetter();
-          $('#status').load('./_data/_meta.json')
+          populate_meta();
         }, 1000 * 60);
     </script>
     <script src="./js/bootstrap.min.js"></script>

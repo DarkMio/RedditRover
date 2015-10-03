@@ -35,8 +35,21 @@ class StatisticsFeeder:
             info = template_info.format(type='warn', title='Warning', content=message)
         else:
             info = ''
+        self._write_meta(info=info)
+
+    def _write_meta(self, info):
+        meta_stats = self.db.select_day_from_meta(time())
+        if meta_stats:
+            date, subm, comments, cycles = meta_stats
+            reacted = self.db.get_length_at_day(time())[0]
+            rate = reacted * 100 / (comments + subm)
+        else:
+            subm, comments, cycles, rate = 0, 0, 0, 0
         with open(self.path + '_data/_meta.json', 'w') as f:
-            f.write(info)
+            f.write(json.dumps(
+                {'status': info, 'submissions': subm, 'comments': comments, 'cycles': cycles,
+                 'rate': '{:.5f}'.format(rate)}
+            ))
 
     def status_online(self):
         self._set_status('online', 'The bot is currently running, last update was {}'.format(time()))
@@ -86,6 +99,7 @@ class StatisticsFeeder:
             self.db.update_karma_count(thread_id, randint(-50, 350), randint(-50, 350))
 
     def render_overview(self):
+        self.status_online()
         self._table_rows()
         self._plugin_activity()
         self._subreddit_activity()

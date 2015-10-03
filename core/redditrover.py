@@ -189,6 +189,8 @@ class RedditRover:
         self.logger.info("Opened submission stream successfully.")
         for subm in self.submissions:
             self.comment_submission_worker(subm)
+            self.database_subm.add_submission_to_meta(1)
+
 
     def comment_thread(self):
         """
@@ -198,6 +200,7 @@ class RedditRover:
         self.logger.info("Opened comment stream successfully.")
         for comment in self.comments:
             self.comment_submission_worker(comment)
+            self.database_cmt.add_comment_to_meta(1)
 
     def comment_submission_worker(self, thing):
         """
@@ -302,6 +305,7 @@ class RedditRover:
             except:
                 pass
             self.database_update.clean_up_database(int(time()) - int(self.delete_after))
+            self.database_update.add_update_cycle_to_meta(1)
             self.lock.release()
             # after working through all update threads, sleep for five minutes. #saveresources
             sleep(self.update_interval)

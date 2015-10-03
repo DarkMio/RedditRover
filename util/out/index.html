@@ -50,14 +50,11 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
-            <li><a href="#">Dashboard</a></li>
-            <li><a href="#">Settings</a></li>
-            <li><a href="#">Profile</a></li>
-            <li><a href="#">Help</a></li>
+            <li><a href="#">Submissions seen: <span id="submissions"></span></a></li>
+            <li><a href="#">Comments seen: <span id="comments"></span></a></li>
+            <li><a href="#">Update Cycles: <span id="cycles"></span></a></li>
+            <li><a href="#">Reaction Rate: <span id="rate"></span>%</a></li>
           </ul>
-          <form class="navbar-form navbar-right">
-            <input type="text" class="form-control" placeholder="Search...">
-          </form>
         </div>
       </div>
     </nav>
@@ -118,14 +115,24 @@
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     <script type="text/javascript">
+                function populate_meta () {
+            $.get('./_data/_meta.json', function (data) {
+                $('#status').html(data['status']);
+                $('#submissions').html(data['submissions']);
+                $('#comments').html(data['comments']);
+                $('#cycles').html(data['cycles']);
+                $('#rate').html(data['rate']);
+            });
+        }
+
         jQuery(function($){
             $('.table').footable({
                 "columns": $.get('./_data/_overview_columns.json?v=' + Math.floor(Math.random()*100*100*100)),
                 "rows": $.get('./_data/overview_rows.json?v=' + Math.random())
             });
         });
-        $(document).ready(function() {$('#status').load('./_data/_meta.json')});
-        setInterval(function(){$('#status').load('./_data/_meta.json')}, 1000 * 60);
+        $(document).ready(function() {populate_meta()});
+        setInterval(function(){populate_meta()}, 1000 * 60);
     </script>
     <script src="./js/bootstrap.min.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
