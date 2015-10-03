@@ -2,6 +2,8 @@
 import logging
 import sqlite3
 from pkg_resources import resource_filename
+import time
+import atexit
 
 
 class Database:
@@ -24,6 +26,12 @@ class Database:
     :ivar cur: Cursor to interface with the database.
     :type cur: sqlite3.Cursor
     :vartype cur: sqlite3.Cursor
+    :ivar _meta_push: Dictionary with helper methods to reduce the amount of requests for meta tables
+    :type _meta_push: dict
+    :vartype _meta_push: dict
+    :ivar _MAX_CACHE = maximum content within the _meta_push dictionary to get pushed into the database.
+    :type _MAX_CACHE: int
+    :vartype _MAX_CACHE: int
     """
 
     def __init__(self):
@@ -35,6 +43,11 @@ class Database:
         )
         self.cur = self.db.cursor()
         self.database_init()
+        self._meta_push = {'submissions': 0, 'comments': 0, 'cycles': 0}
+        self._MAX_CACHE = 150
+        self._date = time.time() // (60 * 60)
+        atexit.register(self.write_out_meta_push, force=True)  # When the database gets closed, write out the meta
+        atexit.register(self.db.close)                         # Then close the database
 
     def __del__(self):
         self.db.close()
@@ -102,7 +115,11 @@ class Database:
         if not self._database_check_if_exists('meta_stats'):
             self.cur.execute(
                 '''CREATE TABLE IF NOT EXISTS meta_stats
-                      (day DATE, seen_submissions INT(10), seen_comments INT(10), update_cycles INT(10))''')
+                      (day DATE NOT NULL,
+                       seen_submissions INT(10) DEFAULT 0,
+                       seen_comments INT(10) DEFAULT 0,
+                       update_cycles INT(10) DEFAULT 0)
+                ''')
             info('meta_stats')
 
     def _database_check_if_exists(self, table_name):
@@ -614,20 +631,76 @@ class Database:
                             ''')
         return self.cur.fetchall()
 
-    def add_submission_to_meta(self, count, timestamp):
-        day_divsior = 60 * 60 * 24
-        day_stamp = timestamp // day_divsior * day_divsior  # in place if DATE(xx, unixepoch) shouldn't work.
+    def _select_day_from_meta(self, timestamp):
+        day_divisior = 60 * 60 * 24
+        day_stamp = timestamp // day_divisior * day_divisior  # in place if DATE(xx, unixepoch) shouldn't work.
         self.cur.execute('''SELECT * FROM meta_stats WHERE day = DATE((?), 'unixepoch')''', (timestamp,))
-        if not self.cur.fetchone():
+        return self.cur.fetchone()
+
+    def add_submission_to_meta(self, count, force=False):
+        self.write_out_meta_push(force)
+        self._meta_push['submissions'] += count
+
+    def add_comment_to_meta(self, count, force=False):
+        self.write_out_meta_push(force)
+        self._meta_push['comments'] += count
+
+    def add_update_cycle_to_meta(self, count, force=False):
+        self.write_out_meta_push(force)
+        self._meta_push['cycles'] += count
+
+    def _write_out_meta_push(self):
+        for k, count in self._meta_push.items():
+            if k == 'submissions':
+                self._add_submission_to_meta(count, self._date * 3600)
+            if k == 'comments':
+                self._add_comment_to_meta(count, self._date * 3600)
+            if k == 'cycles':
+                self._add_update_cycle_to_meta(count, self._date * 3600)
+        self._meta_push = {'submissions': 0, 'comments': 0, 'cycles': 0}
+
+    def write_out_meta_push(self, force=False):
+        if force or sum(self._meta_push.values()) >= self._MAX_CACHE:
+            self._write_out_meta_push()
+        if not self._date == time.time() // 3600:
+            self._write_out_meta_push()
+            self._date = time.time() // 3600
+
+    def _add_submission_to_meta(self, count, timestamp):
+        if not self._select_day_from_meta(timestamp):
             self.cur.execute('''INSERT INTO meta_stats (day, seen_submissions)
                                   VALUES (DATE((?), 'unixepoch'), (?))''', (timestamp, count))
         else:
-            self.cur.execute('''UPDATE meta_stats SET seen_submissions += (?)
+            self.cur.execute('''UPDATE meta_stats SET seen_submissions = seen_submissions + (?)
                                 WHERE day = DATE((?), 'unixepoch')''', (count, timestamp))
 
+    def _add_comment_to_meta(self, count, timestamp):
+        if not self._select_day_from_meta(timestamp):
+            self.cur.execute('''INSERT INTO meta_stats (day, seen_comments)
+                                  VALUES (DATE((?), 'unixepoch'), (?))'''), (timestamp, count)
+        else:
+            self.cur.execute('''UPDATE meta_stats SET seen_comments = seen_submissions + (?)
+                                WHERE day = DATE((?), 'unixepoch')''', (count, timestamp))
+
+    def _add_update_cycle_to_meta(self, count, timestamp):
+        if not self._select_day_from_meta(timestamp):
+            self.cur.execute('''INSERT INTO meta_stats (day, update_cycles)
+                                 VALUES (DATE((?), 'unixepoch'), (?))''', (timestamp, count))
+        else:
+            self.cur.execute('''UPDATE meta_stats SET update_cycles = update_cycles + (?)
+                                WHERE day = DATE((?), 'unixepoch')''', (count, timestamp))
+
+
 if __name__ == "__main__":
-    pass
     db = Database()
+    from random import randint
+    for x in range(1000):
+        submissions = randint(0, 50)
+        comments = randint(0, 50)
+        cycles = randint(0, 50)
+        db.add_comment_to_meta(comments)
+        db.add_submission_to_meta(submissions)
+        db.add_update_cycle_to_meta(cycles)
 #   thing_id = "t2_c384fd"
 #   module = "MassdropBot"
 #   user = "MioMoto"
