@@ -37,7 +37,6 @@ $(function () {
             $.each(data, function (i, point) {
                 point.y = point.data;
             });
-            console.log(data);
             options.series[0].data = data;
             var chart = new Highcharts.Chart(options);
         });
