@@ -46,9 +46,6 @@
             <li><a href="#">Profile</a></li>
             <li><a href="#">Help</a></li>
           </ul>
-          <form class="navbar-form navbar-right">
-            <input type="text" class="form-control" placeholder="Search...">
-          </form>
         </div>
       </div>
     </nav>
@@ -56,6 +53,7 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-sm-3 col-md-2 sidebar">
+          <div id="status"></div>
           <ul class="nav nav-sidebar">
             <li><a href="./index.html">Overview</a></li>
             <li><a href="./karma.html">Karma Statistics</a></li>
@@ -95,8 +93,14 @@
                 $('#log').text(data);
             });
         }
-        $(document).ready(function() { datasetter() });
-        setInterval(function() { datasetter() }, 1000 * 60);
+        $(document).ready(function() {
+          datasetter();
+          $('#status').load('./_data/_meta.json')
+        });
+        setInterval(function() {
+          datasetter();
+          $('#status').load('./_data/_meta.json')
+        }, 1000 * 60);
     </script>
     <script src="./js/bootstrap.min.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->

@@ -6,6 +6,8 @@ from praw import Reddit
 from praw.objects import Submission, Comment, MoreComments
 from configparser import ConfigParser
 from pkg_resources import resource_filename
+from time import time
+import atexit
 
 
 class StatisticsFeeder:
@@ -20,6 +22,33 @@ class StatisticsFeeder:
         self.config = ConfigParser()
         self.config.read(resource_filename('config', 'bot_config.ini'))
         self.authors = self.get_authors()
+        self.status_online()
+        atexit.register(self.status_offline)
+
+    def _set_status(self, state, message):
+        template_info = '''<span class="label label-{type}">Status: {title}</span>'''
+        if state == 'online':
+            info = template_info.format(type='success', title='Online', content=message)
+        elif state == 'offline':
+            info = template_info.format(type='danger', title='Offline', content=message)
+        elif state == 'warning':
+            info = template_info.format(type='warn', title='Warning', content=message)
+        else:
+            info = ''
+        with open(self.path + '_data/_meta.json', 'w') as f:
+            f.write(info)
+
+    def status_online(self):
+        self._set_status('online', 'The bot is currently running, last update was {}'.format(time()))
+
+    def status_offline(self):
+        self._set_status('offline', 'The bot is currently offline.')
+
+    def status_warning(self, traceback=None):
+        if traceback:
+            self._set_status('warning', 'Here is the latest traceback: <br /><pre>{}</pre>'.format(traceback))
+        else:
+            self._set_status('warning', 'Check the console, there is maybe an error. (no traceback given)')
 
     def get_authors(self):
         carelist = []
@@ -218,3 +247,5 @@ if __name__ == "__main__":
     # sf._write_filler_karma()
     sf.render_overview()
     sf.render_karma()
+    from time import sleep
+    sleep(60)

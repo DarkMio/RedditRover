@@ -63,6 +63,7 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-sm-3 col-md-2 sidebar">
+          <div id="status"></div>
           <ul class="nav nav-sidebar">
             <li><a href="./index.html">Overview</a></li>
             <li class="active"><a href="#">Karma Statistics <span class="sr-only">(current)</span></a></li>
@@ -126,6 +127,8 @@
                 "rows": $.get('./_data/overview_rows.json?v='+Math.random())
             });
         });
+        $(document).ready(function() {$('#status').load('./_data/_meta.json')});
+        setInterval(function(){$('#status').load('./_data/_meta.json')}, 1000 * 60);
     </script>
     <script src="./js/bootstrap.min.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->

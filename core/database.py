@@ -97,6 +97,13 @@ class Database:
                       (id STR(10) NOT NULL, bot_module INT(5), created DATETIME, title STR(300),
                        author STR(50), body STR)'''
             )
+            info('messages')
+
+        if not self._database_check_if_exists('meta_stats'):
+            self.cur.execute(
+                '''CREATE TABLE IF NOT EXISTS meta_stats
+                      (day DATE, seen_submissions INT(10), seen_comments INT(10), update_cycles INT(10))''')
+            info('meta_stats')
 
     def _database_check_if_exists(self, table_name):
         """
@@ -591,34 +598,6 @@ class Database:
     def update_karma_count_with_null(self, thing_id, author_upvotes):
         self.cur.execute('''UPDATE stats SET upvotes_author = (?) WHERE id = (?)''', (author_upvotes, thing_id))
 
-    def migrate_storage(self):
-        from datetime import datetime as dt
-        from praw import Reddit
-        from praw.objects import Submission, Comment
-        r = Reddit(user_agent="Data migration one time operation")
-        carelist = []
-        full_set = self.get_all_storage()
-        full_set = [[entries[0], entries[1], int(dt.strptime(entries[2], '%Y-%m-%d %H:%M:%S').timestamp())] for entries
-                    in full_set]
-        for i, entry in enumerate(full_set):
-            thing = r.get_info(thing_id=entry[0])
-            ":type : Submission | Comment"
-            if type(thing.author) is type(None):
-                author = '[deleted]'
-            else:
-                author = thing.author.name
-            if isinstance(thing, Submission):
-                title = thing.title
-            else:
-                title = thing.submission.title
-            carelist.append({'id': entry[0], 'bot_name': entry[1], 'time': entry[2], 'title': title,
-                             'username': author, 'subreddit': thing.subreddit.display_name,
-                             'permalink': thing.permalink})
-            print('{}, '.format(i), end='', flush=True)
-        for line in carelist:
-            self.add_to_stats(**line)
-        print(self.get_all_stats())
-
     def add_message(self, msg_id, bot_module, created, username, title, body):
         self.cur.execute('''INSERT INTO messages (id, bot_module, created, title, author, body)
                             VALUES ( (?),
@@ -629,13 +608,26 @@ class Database:
                                      (?)) ''', (msg_id, bot_module, created, username, title, body))
 
     def get_all_messages(self):
-        self.cur.execute('SELECT * FROM messages')
+        self.cur.execute('''SELECT id, module_name, created, title, author, body FROM messages
+                            INNER JOIN modules
+                            ON bot_module = modules._ROWID_
+                            ''')
         return self.cur.fetchall()
+
+    def add_submission_to_meta(self, count, timestamp):
+        day_divsior = 60 * 60 * 24
+        day_stamp = timestamp // day_divsior * day_divsior  # in place if DATE(xx, unixepoch) shouldn't work.
+        self.cur.execute('''SELECT * FROM meta_stats WHERE day = DATE((?), 'unixepoch')''', (timestamp,))
+        if not self.cur.fetchone():
+            self.cur.execute('''INSERT INTO meta_stats (day, seen_submissions)
+                                  VALUES (DATE((?), 'unixepoch'), (?))''', (timestamp, count))
+        else:
+            self.cur.execute('''UPDATE meta_stats SET seen_submissions += (?)
+                                WHERE day = DATE((?), 'unixepoch')''', (count, timestamp))
 
 if __name__ == "__main__":
     pass
     db = Database()
-    db.migrate_storage()
 #   thing_id = "t2_c384fd"
 #   module = "MassdropBot"
 #   user = "MioMoto"
