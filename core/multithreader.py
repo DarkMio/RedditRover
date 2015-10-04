@@ -30,7 +30,7 @@ class MultiThreader:
             if len(line) == 1:
                 thread = threading.Thread(target=line[0])
             else:
-                thread = threading.Thread(target=line[0], args=[1])
+                thread = threading.Thread(target=line[0], args=line[1])
             thread.daemon = True
             thread.start()
             self.threads.append(thread)
