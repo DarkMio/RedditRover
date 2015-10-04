@@ -1,0 +1,108 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="favicon.ico">
+
+    <title>System Logs | RedditRover Statistics</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="style.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <script src="js/jquery1.9.1.min.js"></script>
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">RedditRover Statistics</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Submissions seen: <span id="submissions"></span></a></li>
+            <li><a href="#">Comments seen: <span id="comments"></span></a></li>
+            <li><a href="#">Update Cycles: <span id="cycles"></span></a></li>
+            <li><a href="#">Reaction Rate: <span id="rate"></span>%</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+          <div id="status"></div>
+            <br />
+          <ul class="nav nav-sidebar">
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="karma.html">Karma Statistics</a></li>
+            <li><a href="messages.html"> Messages </a></li>
+            <li class="active"><a href="#">System Logs <span class="sr-only">(current)</span> </a></li>
+          </ul>
+        </div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+          <h1 class="page-header">System Logs</h1>
+            <span class="text-muted">Maximum of 1500 log entries, reversed order.</span>
+            <pre id="log"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/javascript">
+        function populate_meta () {
+            $.get('./_data/_meta.json', function (data) {
+                $('#status').html(data['status']);
+                $('#submissions').html(data['submissions']);
+                $('#comments').html(data['comments']);
+                $('#cycles').html(data['cycles']);
+                $('#rate').html(data['rate']);
+            });
+        }
+
+        function datasetter () {
+            $.get('./_data/weblog.txt', function (data) {
+                data = data.split('\n');
+                data.pop();
+                data = data.reverse().join("\n");
+                $('#log').text(data);
+            });
+        }
+        $(document).ready(function() {
+          populate_meta();
+          datasetter();
+        });
+        setInterval(function() {
+          datasetter();
+          populate_meta();
+        }, 1000 * 60);
+    </script>
+    <script src="js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="js/ie10-viewport-bug-workaround.js"></script>
+  </body>
+</html>

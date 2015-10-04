@@ -2,6 +2,8 @@
 import logging
 import sqlite3
 from pkg_resources import resource_filename
+import time
+import atexit
 
 
 class Database:
@@ -24,6 +26,12 @@ class Database:
     :ivar cur: Cursor to interface with the database.
     :type cur: sqlite3.Cursor
     :vartype cur: sqlite3.Cursor
+    :ivar _meta_push: Dictionary with helper methods to reduce the amount of requests for meta tables
+    :type _meta_push: dict
+    :vartype _meta_push: dict
+    :ivar _MAX_CACHE = maximum content within the _meta_push dictionary to get pushed into the database.
+    :type _MAX_CACHE: int
+    :vartype _MAX_CACHE: int
     """
 
     def __init__(self):
@@ -35,10 +43,12 @@ class Database:
         )
         self.cur = self.db.cursor()
         self.database_init()
-
-    def __del__(self):
-        self.db.close()
-        self.logger.warning("DB connection has been closed.")
+        self._meta_push = {'submissions': 0, 'comments': 0, 'cycles': 0}
+        self._MAX_CACHE = 500
+        self._date = time.time() // (60 * 60)
+        atexit.register(self.write_out_meta_push, force=True)  # When the database gets closed, write out the meta
+        # atexit.register(self.db.close)
+        atexit.register(self.logger.warning, "DB connection has been closed.")
 
     def database_init(self):
         """
@@ -82,6 +92,33 @@ class Database:
             )
             info('subbans')
 
+        if not self._database_check_if_exists('stats'):
+            self.cur.execute(
+                'CREATE TABLE IF NOT EXISTS stats '
+                '(id STR(10) NOT NULL, bot_module INT(5),'
+                ' created DATETIME, title STR(300), username STR(50), '
+                ' permalink STR(150), subreddit STR(50), upvotes_author INT(5), upvotes_bot INT(5))'
+            )
+            info('stats')
+
+        if not self._database_check_if_exists('messages'):
+            self.cur.execute(
+                '''CREATE TABLE IF NOT EXISTS messages
+                      (id STR(10) NOT NULL, bot_module INT(5), created DATETIME, title STR(300),
+                       author STR(50), body STR)'''
+            )
+            info('messages')
+
+        if not self._database_check_if_exists('meta_stats'):
+            self.cur.execute(
+                '''CREATE TABLE IF NOT EXISTS meta_stats
+                      (day DATE NOT NULL,
+                       seen_submissions INT(10) DEFAULT 0,
+                       seen_comments INT(10) DEFAULT 0,
+                       update_cycles INT(10) DEFAULT 0)
+                ''')
+            info('meta_stats')
+
     def _database_check_if_exists(self, table_name):
         """
         Helper method to check if a certain table (by name) exists. Refrain from using it if you're not adding new
@@ -90,7 +127,7 @@ class Database:
         :type table_name: str
         :return: Tuple of the table name, empty if it doesn't exist.
         """
-        self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name=(?)', (table_name,))
+        self.cur.execute('SELECT name FROM sqlite_master WHERE  type="table" AND name=(?)', (table_name,))
         return self.cur.fetchone()
 
     def insert_into_storage(self, thing_id, module):
@@ -539,10 +576,260 @@ class Database:
         self.cur.execute("""DELETE FROM modules WHERE module_name = (?)""", (module,))
         self.logger.debug("{} got wiped from all tables and all its references.".format(module))
 
+    def add_to_stats(self, id, bot_name, title, username, subreddit, permalink):
+        """
+        Adds a row to the stats, see params (is handled by RedditRover).
+
+        :param id: submission or comment id
+        :type id: str
+        :param bot_name: Plugin Name
+        :type bot_name: str
+        :param title: Title of original submission
+        :type title: str
+        :param username: Original Author of responded submission
+        :type username: str
+        :param subreddit: Subreddit Name of submission
+        :type subreddit: str
+        :param permalink: Permalink to comment or submission the bot has responded upon
+        :type permalink: str
+        """
+        self.cur.execute('''INSERT INTO stats (id, bot_module, created, title, username, subreddit, permalink)
+                            VALUES ((?),
+                                   (SELECT _ROWID_ FROM modules WHERE module_name = (?)),
+                                   DATETIME('now'),
+                                   (?),
+                                   (?),
+                                   (?),
+                                   (?))''', (id, bot_name, title, username, subreddit, permalink))
+
+    def get_all_stats(self):
+        """
+        Returns a tuple of tuple, be warned: ``upvotes_author`` and ``upvotes_bot`` can both be null.
+
+        :return: Tuple of tuples: ``(thing_id, module_name, created, title, username, subreddit,
+                 upvotes_author, upvotes_bot)``
+        """
+        self.cur.execute("""SELECT id, module_name, created, title, username, subreddit,
+                                   permalink, upvotes_author, upvotes_bot
+                            FROM stats
+                            INNER JOIN modules
+                            ON bot_module = modules._ROWID_""")
+        return self.cur.fetchall()
+
+    def get_total_responses_per_day(self, timestamp):
+        """
+        Gets the total amount of rows for a day. The timestamp has to be in that day to work.
+
+        :param timestamp: Unix timestamp of day
+        :type timestamp: int | float
+        :return: Tuple with ``(amount of rows,)``
+        """
+        self.cur.execute('''SELECT count(*) FROM stats
+                            WHERE created BETWEEN DATE((?), 'unixepoch') AND DATE((?), 'unixepoch', '+1 day')''',
+                         (timestamp, timestamp))
+        return self.cur.fetchone()
+
+    def get_karma_loads(self):
+        """
+        Returns a tuple with IDs for karma statistics.
+
+        :return: Tuple with ``(id,)``
+        """
+        self.cur.execute('''SELECT id FROM stats
+                            WHERE upvotes_author is NULL
+                            AND created < DATETIME('now', '-7 days')''')
+        return self.cur.fetchall()
+
+    def update_karma_count(self, thing_id, author_upvotes, plugin_upvotes):
+        """
+        Updates the karma count for a previously stored response.
+
+        :param thing_id: id of submission a plugin has responded on
+        :type thing_id: str
+        :param author_upvotes: Amount of upvotes from the author
+        :type author_upvotes: int
+        :param plugin_upvotes: Amount of upvotes from the plugin
+        :type plugin_upvotes: int
+        """
+        self.cur.execute('''UPDATE stats
+                            SET upvotes_author = (?), upvotes_bot = (?)
+                            WHERE id = (?)''', (author_upvotes, plugin_upvotes, thing_id))
+
+    def update_karma_count_with_null(self, thing_id, author_upvotes):
+        """
+        Updates only author_upvotes, sometimes plugin responses are already deleted.
+
+        :param thing_id: id of submission a plugin has responded on
+        :type thing_id: str
+        :param author_upvotes: Amount of upvotes from the author
+        :type author_upvotes: int
+        """
+        self.cur.execute('''UPDATE stats SET upvotes_author = (?) WHERE id = (?)''', (author_upvotes, thing_id))
+
+    def add_message(self, msg_id, bot_module, created, username, title, body):
+        """
+        Upon receiving a message, its contents will be stored in a table for statistical purposes and overview of all
+        plugins inboxes.
+
+        :param msg_id: Unique message id from reddit.
+        :type msg_id: str
+        :param bot_module: Plugins Name
+        :type bot_module: str
+        :param created: Unix timestamp of messages arrival
+        :type created: int | float
+        :param username: Original author of the message
+        :type username: str
+        :param title: Subject of said message
+        :type title: str
+        :param body: Text body of this message.
+        :type body: str
+        """
+        self.cur.execute('''INSERT INTO messages (id, bot_module, created, title, author, body)
+                            VALUES ( (?),
+                                     (SELECT _ROWID_ FROM modules WHERE module_name = (?)),
+                                     DATETIME((?), 'unixepoch'),
+                                     (?),
+                                     (?),
+                                     (?)) ''', (msg_id, bot_module, created, username, title, body))
+
+    def get_all_messages(self):
+        """
+        Returns all messages in the messages table.
+
+        :return: Tuple of tuples: ``(id, module_name, created, title, author, body)``
+        """
+        self.cur.execute('''SELECT id, module_name, created, title, author, body FROM messages
+                            INNER JOIN modules
+                            ON bot_module = modules._ROWID_
+                            ''')
+        return self.cur.fetchall()
+
+    def select_day_from_meta(self, timestamp):
+        """
+        Returns a certain day from the meta_stats.
+
+        :param timestamp: Unix timestamp from a certain day. Has to be within that day.
+        :type timestamp: int | float
+        :return: Tuple of ``(day, seen_submissions, seen_comment, update_cycles)``
+        """
+        self.cur.execute('''SELECT * FROM meta_stats WHERE day = DATE((?), 'unixepoch')''', (timestamp,))
+        return self.cur.fetchone()
+
+    def add_submission_to_meta(self, count, force=False):
+        """
+        Increases the submission count for this day in a cached fashion.
+
+        :param count: Increases current count by this count.
+        :type count: int
+        :param force: Forces the write out into the database.
+        :type force: bool
+        """
+        self.write_out_meta_push(force)
+        self._meta_push['submissions'] += count
+
+    def add_comment_to_meta(self, count, force=False):
+        """
+        Increases the comment count for this day in a cached fashion.
+
+        :param count: Increases current count by this count.
+        :type count: int
+        :param force: Forces the write out into the database.
+        :type force: bool
+        """
+        self.write_out_meta_push(force)
+        self._meta_push['comments'] += count
+
+    def add_update_cycle_to_meta(self, count, force=False):
+        """
+        Increases the update cycle count for this day in a cached fashion
+
+        :param count: Increases current count by this count.
+        :type count: int
+        :param force: Forces the write out into the database.
+        :type force: bool
+        """
+        self.write_out_meta_push(force)
+        self._meta_push['cycles'] += count
+
+    def _write_out_meta_push(self):
+        """
+        Writes out the values in the meta cache. Reduces the amount of DB requests by a major amount.
+        """
+        for k, count in self._meta_push.items():
+            if k == 'submissions':
+                self._add_submission_to_meta(count, self._date * 3600)
+            if k == 'comments':
+                self._add_comment_to_meta(count, self._date * 3600)
+            if k == 'cycles':
+                self._add_update_cycle_to_meta(count, self._date * 3600)
+        self._meta_push = {'submissions': 0, 'comments': 0, 'cycles': 0}
+
+    def write_out_meta_push(self, force=False):
+        """
+        Checks if the meta cache has to be written - or can be forced.
+
+        :param force: Forces the write out
+        :type force: bool
+        """
+        if force or sum(self._meta_push.values()) >= self._MAX_CACHE:
+            self._write_out_meta_push()
+        if not self._date == time.time() // 3600:
+            self._write_out_meta_push()
+            self._date = time.time() // 3600
+
+    def _add_submission_to_meta(self, count, timestamp):
+        """
+        Increases the submission count for a day.
+
+        :param count: Amount of which it should be increased.
+        :type count: int
+        :param timestamp: Timestamp that lies in that day it should be increased to.
+        :type timestamp: int | float
+        """
+        if not self.select_day_from_meta(timestamp):
+            self.cur.execute('''INSERT INTO meta_stats (day, seen_submissions)
+                                  VALUES (DATE((?), 'unixepoch'), (?))''', (timestamp, count))
+        else:
+            self.cur.execute('''UPDATE meta_stats SET seen_submissions = seen_submissions + (?)
+                                WHERE day = DATE((?), 'unixepoch')''', (count, timestamp))
+
+    def _add_comment_to_meta(self, count, timestamp):
+        """
+        Increases the comment count for a day.
+
+        :param count: Amount of which it should be increased.
+        :type count: int
+        :param timestamp: Timestamp that lies in that day it should be increased to.
+        :type timestamp: int | float
+        """
+        if not self.select_day_from_meta(timestamp):
+            self.cur.execute('''INSERT INTO meta_stats (day, seen_comments)
+                                  VALUES (DATE((?), 'unixepoch'), (?))'''), (timestamp, count)
+        else:
+            self.cur.execute('''UPDATE meta_stats SET seen_comments = seen_submissions + (?)
+                                WHERE day = DATE((?), 'unixepoch')''', (count, timestamp))
+
+    def _add_update_cycle_to_meta(self, count, timestamp):
+        """
+        Increases the update cycle count for a day.
+
+        :param count: Amount of which it should be increased.
+        :type count: int
+        :param timestamp: Timestamp that lies in that day it should be increased to.
+        :type timestamp: int | float
+        """
+        if not self.select_day_from_meta(timestamp):
+            self.cur.execute('''INSERT INTO meta_stats (day, update_cycles)
+                                 VALUES (DATE((?), 'unixepoch'), (?))''', (timestamp, count))
+        else:
+            self.cur.execute('''UPDATE meta_stats SET update_cycles = update_cycles + (?)
+                                WHERE day = DATE((?), 'unixepoch')''', (count, timestamp))
+
 
 if __name__ == "__main__":
-    pass
-#   db = Database()
+    db = Database()
+#    print(db.get_total_responses_per_day(time.time() - 86400))
+
 #   thing_id = "t2_c384fd"
 #   module = "MassdropBot"
 #   user = "MioMoto"

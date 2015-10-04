@@ -1,19 +1,20 @@
 # coding=utf-8
+from configparser import ConfigParser
+from time import time, sleep, strptime
+from sys import exit
+import pkgutil
+import traceback
+
+from pkg_resources import resource_filename
+from praw.errors import *
+import praw
+
 import plugins
 from core import logprovider
 from misc import warning_filter
 from core import *
 from .decorators import retry
-
-from configparser import ConfigParser
-from time import time, sleep, strptime
-from sys import exit
-from pkg_resources import resource_filename
-from praw.errors import *
-
-import pkgutil
-import traceback
-import praw
+from core.stats import StatisticsFeeder
 
 
 class RedditRover:
@@ -73,8 +74,9 @@ class RedditRover:
         self.config = ConfigParser()
         self.config.read(resource_filename('config', 'bot_config.ini'))
         self.mark_as_read, self.catch_http_exception, self.delete_after, self.verbose, self.update_interval, \
-            subreddit = self._bot_variables()
-        self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose])
+            subreddit, generate_stats, www_path = self._bot_variables()
+        self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose],
+                                                web_log_path=www_path + '_data/weblog.txt')
         self.multi_thread = MultiThreader()
         self.lock = self.multi_thread.get_lock()
         self.database_update = Database()
@@ -95,6 +97,10 @@ class RedditRover:
             self.logger.error(e)
             self.logger.error(traceback.print_exc())
             exit(-1)
+        if generate_stats:  # Not everyone hosts a webserver, not everyone wants stats.
+            self.stats = StatisticsFeeder(self.database_update, self.praw_handler, www_path)
+        else:
+            self.stats = None
         self.submissions = praw.helpers.submission_stream(self.submission_poller, subreddit, limit=None, verbosity=0)
         self.comments = praw.helpers.comment_stream(self.comment_poller, subreddit, limit=None, verbosity=0)
         self.multi_thread.go([self.comment_thread], [self.submission_thread], [self.update_thread])
@@ -109,7 +115,7 @@ class RedditRover:
         get_i = lambda x: self.config.getint('RedditRover', x)
         get = lambda x: self.config.get('RedditRover', x)
         return get_b('mark_as_read'), get_b('catch_http_exception'), get_i('delete_after'), get_b('verbose'),\
-            get_i('update_interval'), get('subreddit')
+            get_i('update_interval'), get('subreddit'), get_b('generate_stats'), get('www_path')
 
     def _filter_single_thing(self, thing, responder):
         """
@@ -188,6 +194,7 @@ class RedditRover:
         self.logger.info("Opened submission stream successfully.")
         for subm in self.submissions:
             self.comment_submission_worker(subm)
+            self.database_subm.add_submission_to_meta(1)
 
     def comment_thread(self):
         """
@@ -197,6 +204,7 @@ class RedditRover:
         self.logger.info("Opened comment stream successfully.")
         for comment in self.comments:
             self.comment_submission_worker(comment)
+            self.database_cmt.add_comment_to_meta(1)
 
     def comment_submission_worker(self, thing):
         """
@@ -245,8 +253,16 @@ class RedditRover:
                 self.logger.debug('{} successfully responded on {}'.format(responder.BOT_NAME, thing.permalink))
                 if isinstance(thing, praw.objects.Comment):
                     self.database_cmt.insert_into_storage(thing.name, responder.BOT_NAME)
+                    caredict = {'id': thing.fullname, 'bot_name': responder.BOT_NAME, 'title': thing.submission.title,
+                                'username': thing.author.name, 'subreddit': thing.subreddit.display_name,
+                                'permalink': thing.permalink}
+                    self.database_cmt.add_to_stats(**caredict)
                 else:
                     self.database_subm.insert_into_storage(thing.name, responder.BOT_NAME)
+                    caredict = {'id': thing.fullname, 'bot_name': responder.BOT_NAME, 'title': thing.title,
+                                'username': thing.author.name, 'subreddit': thing.subreddit.display_name,
+                                'permalink': thing.permalink}
+                    self.database_subm.add_to_stats(**caredict)
         except Forbidden:
             name = thing.subreddit.display_name
             self.database_subm.add_subreddit_ban_per_module(name, responder.BOT_NAME)
@@ -285,7 +301,16 @@ class RedditRover:
                 except Exception as e:
                     self.logger.error(traceback.print_exc())
                     self.logger.error("{} error: {} < {}".format(responder.BOT_NAME, e.__class__.__name__, e))
+            if self.stats:
+                try:
+                    self.stats.get_old_comment_karma()
+                    self.stats.render_overview()
+                    self.stats.render_karma()
+                    self.stats.render_messages()
+                except:
+                    pass
             self.database_update.clean_up_database(int(time()) - int(self.delete_after))
+            self.database_update.add_update_cycle_to_meta(1)
             self.lock.release()
             # after working through all update threads, sleep for five minutes. #saveresources
             sleep(self.update_interval)

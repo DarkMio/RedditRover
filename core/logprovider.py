@@ -47,7 +47,8 @@ class _SingleLevelFilter(logging.Filter):
             return record.levelno == self.passlevel
 
 
-def setup_logging(log_level="INFO", console_log_level=None, log_path_format="%Y/%m/%Y-%m-%d.log"):
+def setup_logging(log_level="INFO", console_log_level=None, log_path_format="logs/%Y/%m/%Y-%m-%d.log",
+                  web_log_path=None):
     """
     Thanks to Renol: https://github.com/RenolY2/Renol-IRC-rv2 - This logging handler is quite powerful and
     nicely formatted. This sets up the main Logger and needed to receive bot and plugin messages. If you're testing
@@ -112,6 +113,16 @@ def setup_logging(log_level="INFO", console_log_level=None, log_path_format="%Y/
     handler_logger = logging.getLogger('hndl')
     handler_logger.propagate = False
     handler_logger.addHandler(file_handler)
+
+    # Adding a 1.5k lines web handler
+    if web_log_path:
+        web_handler = MaxFileHandler(web_log_path, encoding='utf-8')
+        web_handler.setLevel(logging.DEBUG)
+        web_handler.setFormatter(logging_format)
+        bot_logger.addHandler(web_handler)
+        plugin_logger.addHandler(web_handler)
+        database_logger.addHandler(web_handler)
+        handler_logger.addHandler(web_handler)
 
     bot_logger.info("RedditRover Logger initialized.")
     logging.getLogger("requests").setLevel(logging.WARNING)
@@ -233,5 +244,49 @@ class DailyRotationHandler(BaseRotatingHandler):
         else:
             return mktime(struct_time) // DAY
 
+
+class MaxFileHandler(logging.FileHandler):
+    def __init__(self, filename, max_len=1500, buffer_len=1400, mode='a+', encoding=None, delay=False):
+        assert max_len > buffer_len, "buffer_len has to be smaller than max_len"
+        super().__init__(filename, mode, encoding, delay)
+        self.max_len = max_len
+        self.filename, self.mode, self.encoding = filename, mode, encoding
+        self.f_len = len(self.stream.read().splitlines())
+        self.buffer_len = buffer_len
+
+    def emit(self, record):
+        if self.stream is None:
+            self.stream = self._open()
+        length = self.f_len - self.max_len
+        if length > 0:
+            from time import sleep
+            self.acquire()
+            with open(self.filename, 'r+', encoding='utf-8') as f:
+                f_lines = f.read().splitlines()
+                f_lines = f_lines[self.max_len - self.buffer_len:]
+                f.seek(0)
+                f.truncate(0)
+                f.write('\n'.join(f_lines) + self.terminator)
+                self.f_len = len(f_lines)
+            self.release()
+
+            # f_list = self.f_list[length:]
+        try:
+            msg = self.format(record)
+            stream = self.stream
+            stream.write(msg)
+            self.f_len += 1
+            stream.write(self.terminator)
+            self.flush()
+        except Exception:
+            self.handleError(record)
+
+
 if __name__ == "__main__":
-    setup_logging()
+    from time import sleep
+    logger = setup_logging()
+    for i in range(16000):
+        if i % 1500 == 0:
+            print(">> HALTED")
+            sleep(5)
+        logger.info(i)
