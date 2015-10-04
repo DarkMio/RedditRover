@@ -41,7 +41,7 @@ class StatisticsFeeder:
         meta_stats = self.db.select_day_from_meta(time())
         if meta_stats:
             date, subm, comments, cycles = meta_stats
-            reacted = self.db.get_length_at_day(time())[0]
+            reacted = self.db.get_total_responses_per_day(time())[0]
             rate = reacted * 100 / (comments + subm)
         else:
             subm, comments, cycles, rate = 0, 0, 0, 0

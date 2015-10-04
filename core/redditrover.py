@@ -99,6 +99,8 @@ class RedditRover:
             exit(-1)
         if generate_stats:  # Not everyone hosts a webserver, not everyone wants stats.
             self.stats = StatisticsFeeder(self.database_update, self.praw_handler, www_path)
+        else:
+            self.stats = None
         self.submissions = praw.helpers.submission_stream(self.submission_poller, subreddit, limit=None, verbosity=0)
         self.comments = praw.helpers.comment_stream(self.comment_poller, subreddit, limit=None, verbosity=0)
         self.multi_thread.go([self.comment_thread], [self.submission_thread], [self.update_thread])
@@ -193,7 +195,6 @@ class RedditRover:
         for subm in self.submissions:
             self.comment_submission_worker(subm)
             self.database_subm.add_submission_to_meta(1)
-
 
     def comment_thread(self):
         """
@@ -300,13 +301,14 @@ class RedditRover:
                 except Exception as e:
                     self.logger.error(traceback.print_exc())
                     self.logger.error("{} error: {} < {}".format(responder.BOT_NAME, e.__class__.__name__, e))
-            try:
-                self.stats.get_old_comment_karma()
-                self.stats.render_overview()
-                self.stats.render_karma()
-                self.stats.render_messages()
-            except:
-                pass
+            if self.stats:
+                try:
+                    self.stats.get_old_comment_karma()
+                    self.stats.render_overview()
+                    self.stats.render_karma()
+                    self.stats.render_messages()
+                except:
+                    pass
             self.database_update.clean_up_database(int(time()) - int(self.delete_after))
             self.database_update.add_update_cycle_to_meta(1)
             self.lock.release()
