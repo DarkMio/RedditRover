@@ -1,19 +1,20 @@
 # coding=utf-8
+from configparser import ConfigParser
+from time import time, sleep, strptime
+from sys import exit
+import pkgutil
+import traceback
+
+from pkg_resources import resource_filename
+from praw.errors import *
+import praw
+
 import plugins
 from core import logprovider
 from misc import warning_filter
 from core import *
 from .decorators import retry
-from util.stats import StatisticsFeeder
-from configparser import ConfigParser
-from time import time, sleep, strptime
-from sys import exit
-from pkg_resources import resource_filename
-from praw.errors import *
-
-import pkgutil
-import traceback
-import praw
+from core.stats import StatisticsFeeder
 
 
 class RedditRover:
@@ -73,8 +74,8 @@ class RedditRover:
         self.config = ConfigParser()
         self.config.read(resource_filename('config', 'bot_config.ini'))
         self.mark_as_read, self.catch_http_exception, self.delete_after, self.verbose, self.update_interval, \
-            subreddit, generate_stats, web_log_path = self._bot_variables()
-        self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose], web_log_path=web_log_path)
+            subreddit, generate_stats, www_path = self._bot_variables()
+        self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose], web_log_path=www_path)
         self.multi_thread = MultiThreader()
         self.lock = self.multi_thread.get_lock()
         self.database_update = Database()
@@ -96,7 +97,7 @@ class RedditRover:
             self.logger.error(traceback.print_exc())
             exit(-1)
         if generate_stats:  # Not everyone hosts a webserver, not everyone wants stats.
-            self.stats = StatisticsFeeder(self.database_update, self.praw_handler, '/var/www/redditrover/')
+            self.stats = StatisticsFeeder(self.database_update, self.praw_handler, www_path)
         self.submissions = praw.helpers.submission_stream(self.submission_poller, subreddit, limit=None, verbosity=0)
         self.comments = praw.helpers.comment_stream(self.comment_poller, subreddit, limit=None, verbosity=0)
         self.multi_thread.go([self.comment_thread], [self.submission_thread], [self.update_thread])
@@ -111,7 +112,7 @@ class RedditRover:
         get_i = lambda x: self.config.getint('RedditRover', x)
         get = lambda x: self.config.get('RedditRover', x)
         return get_b('mark_as_read'), get_b('catch_http_exception'), get_i('delete_after'), get_b('verbose'),\
-            get_i('update_interval'), get('subreddit'), get_b('generate_stats'), get('web_log_path')
+            get_i('update_interval'), get('subreddit'), get_b('generate_stats'), get('www_path')
 
     def _filter_single_thing(self, thing, responder):
         """
