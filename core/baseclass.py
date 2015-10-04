@@ -181,7 +181,7 @@ class PluginBase(metaclass=ABCMeta):
         assert self.OA_APP_KEY and self.OA_APP_SECRET, \
             'OAuth Configuration incomplete, please check your configuration file.'
         self.logger.info('Bot on hold, you need to input some data first to continue!')
-        self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=self.handler)
+        self.session = praw.Reddit(user_agent=self.DESCRIPTION, handler=praw.handlers.DefaultHandler())
         self.session.set_oauth_app_info(self.OA_APP_KEY, self.OA_APP_SECRET,
                                         'http://127.0.0.1:65010/authorize_callback')
         url = self.session.get_authorize_url(self.BOT_NAME, set(scopes), True)
