@@ -32,7 +32,7 @@ the current bot configuration:
     is_logged_in=False
 
 Note that this config is only needed if you're using the standard config setup of the base class. More about builtin
-features and manipulating manually the configuration can be found here: ../pages/baseclass.rst
+methods of the baseclass can be found in the code overview.
 
 2. Importing the base class
 ---------------------------
