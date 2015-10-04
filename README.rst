@@ -49,12 +49,13 @@ supposed to test your features. Read into the documentation to get a detailed gu
 
 Version & Changelog
 -------------------
-This bot is now again under development. Way less complex code, more segmentation and more single responsibility principle.
 
 .. code-block:: html
 
-    v0.8: Custom handler, providing huge speedups, retry decorators, refactoring, close to initial release
+    v1.1: Stats module - can, if set in the config, output statistics as a webpage. See example below
     --------------------------------------------------------------------------------------------------------------
+    v1.0: Initial release. Systems work, bot runs stable.
+    v0.8: Custom handler, providing huge speedups, retry decorators, refactoring, close to initial release
     v0.7: No more praw-OAuth2Util, strengthening the framework, resolving major issues
     v0.6: Recode of the bot. A trillion of new features, which I will document soon
     v0.5: Added more bots - and then it kept fucking up.
@@ -63,13 +64,13 @@ This bot is now again under development. Way less complex code, more segmentatio
     v0.2: Methods to query with referrer-link and stuff like that
     v0.1: Initial Commit
 
+An example of the web statistics can be found here: http://moddota.com/redditrover/
 
 .. begin_future
 
 Planned features & work in progress
 -----------------------------------
 
-- Statistics module, rendering live stats of the bot (should have changeable paths)
 - Some interface to control the bot. Mainly restarting, muting, ignoring, etc. Maybe web backend?
 
 .. end_future
