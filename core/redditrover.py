@@ -75,7 +75,8 @@ class RedditRover:
         self.config.read(resource_filename('config', 'bot_config.ini'))
         self.mark_as_read, self.catch_http_exception, self.delete_after, self.verbose, self.update_interval, \
             subreddit, generate_stats, www_path = self._bot_variables()
-        self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose], web_log_path=www_path)
+        self.logger = logprovider.setup_logging(log_level=("DEBUG", "INFO")[self.verbose],
+                                                web_log_path=www_path + '_data/weblog.txt')
         self.multi_thread = MultiThreader()
         self.lock = self.multi_thread.get_lock()
         self.database_update = Database()

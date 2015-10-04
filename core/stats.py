@@ -15,7 +15,7 @@ class StatisticsFeeder:
     :type db: Database
     :type session: Reddit
     """
-    def __init__(self, database, handler, path='./out/'):
+    def __init__(self, database, handler, path='../html/'):
         self.db = database
         self.path = path
         self.session = Reddit(user_agent='Statistics poller for RedditRover', handler=handler)

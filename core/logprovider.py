@@ -48,7 +48,7 @@ class _SingleLevelFilter(logging.Filter):
 
 
 def setup_logging(log_level="INFO", console_log_level=None, log_path_format="logs/%Y/%m/%Y-%m-%d.log",
-                  web_log_path='../logs/log.txt'):
+                  web_log_path=None):
     """
     Thanks to Renol: https://github.com/RenolY2/Renol-IRC-rv2 - This logging handler is quite powerful and
     nicely formatted. This sets up the main Logger and needed to receive bot and plugin messages. If you're testing
@@ -91,37 +91,38 @@ def setup_logging(log_level="INFO", console_log_level=None, log_path_format="log
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(logging_format)
 
-    # Adding a 1.5k lines web handler
-    web_handler = MaxFileHandler(web_log_path, encoding='utf-8')
-    web_handler.setLevel(logging.DEBUG)
-    web_handler.setFormatter(logging_format)
-
     # this logger writes completely into the console.
     bot_logger = logging.getLogger("bot")
     bot_logger.propagate = False
     bot_logger.addHandler(console_handler)
     bot_logger.addHandler(standard_handler)
     bot_logger.addHandler(file_handler)
-    bot_logger.addHandler(web_handler)
 
     plugin_logger = logging.getLogger("plugin")
     plugin_logger.propagate = False
     plugin_logger.addHandler(console_handler)
     plugin_logger.addHandler(standard_handler)
     plugin_logger.addHandler(file_handler)
-    plugin_logger.addHandler(web_handler)
 
     database_logger = logging.getLogger("database")
     database_logger.propagate = False
     database_logger.addHandler(console_handler)
     database_logger.addHandler(standard_handler)
     database_logger.addHandler(file_handler)
-    database_logger.addHandler(web_handler)
 
     handler_logger = logging.getLogger('hndl')
     handler_logger.propagate = False
     handler_logger.addHandler(file_handler)
-    handler_logger.addHandler(web_handler)
+
+    # Adding a 1.5k lines web handler
+    if web_log_path:
+        web_handler = MaxFileHandler(web_log_path, encoding='utf-8')
+        web_handler.setLevel(logging.DEBUG)
+        web_handler.setFormatter(logging_format)
+        bot_logger.addHandler(web_handler)
+        plugin_logger.addHandler(web_handler)
+        database_logger.addHandler(web_handler)
+        handler_logger.addHandler(web_handler)
 
     bot_logger.info("RedditRover Logger initialized.")
     logging.getLogger("requests").setLevel(logging.WARNING)
